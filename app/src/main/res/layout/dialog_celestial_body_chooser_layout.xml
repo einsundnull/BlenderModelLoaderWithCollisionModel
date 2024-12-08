@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/dialog_celestial_body_chooser_layout"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:alpha="0.7"
+    android:background="@android:drawable/alert_dark_frame"
+    android:padding="16dp">
+
+    <ImageView
+        android:id="@+id/button_close_celestial_body_menu"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentRight="true"
+        app:srcCompat="@drawable/baseline_close_24" />
+
+    <ListView
+        android:id="@+id/dialog_celestial_body_chooser_list_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/button_close_celestial_body_menu"
+        android:layout_marginTop="16dp" />
+</RelativeLayout>

@@ -1,14 +1,13 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.notorein.cuberenderer">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:label="MYAPP"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.MyApp">
-        <activity android:name="com.notorein.cuberenderer.MainActivity"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.Theme.PlanetarySystem3D">
+        <activity android:name="com.notorein.planetarySystem3D.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

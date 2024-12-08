@@ -1,0 +1,109 @@
+<!-- celestial_body_item.xml -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/alert_background_dark"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/body_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Celestial Body"
+        android:textSize="18sp" />
+
+    <!-- Position -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Position (X, Y)"
+        android:textSize="16sp" />
+
+    <EditText
+        android:id="@+id/x_position"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="X Position"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/y_position"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Y Position"
+        android:inputType="numberDecimal" />
+
+    <!-- Velocity -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Velocity (VX, VY)"
+        android:textSize="16sp" />
+
+    <EditText
+        android:id="@+id/vx_velocity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="VX Velocity"
+        android:inputType="numberDecimal" />
+
+    <EditText
+        android:id="@+id/vy_velocity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="VY Velocity"
+        android:inputType="numberDecimal" />
+
+    <!-- Mass -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mass"
+        android:textSize="16sp" />
+
+    <EditText
+        android:id="@+id/mass"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Mass"
+        android:inputType="numberDecimal" />
+
+    <!-- Color Picker -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Color"
+        android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/color_picker_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Choose Color" />
+
+    <!-- Size -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Size"
+        android:textSize="16sp" />
+
+    <SeekBar
+        android:id="@+id/size_seekbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="100"
+        android:progress="50" />
+
+    <!-- Add Celestial Body Button -->
+    <Button
+        android:id="@+id/add_body_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Add Celestial Body" />
+
+</LinearLayout>

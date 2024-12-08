@@ -1,4 +1,4 @@
-package com.notorein.cuberenderer;
+package com.notorein.planetarySystem3D;
 
 import org.junit.Test;
 
