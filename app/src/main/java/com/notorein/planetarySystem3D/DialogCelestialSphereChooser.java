@@ -50,7 +50,16 @@ public class DialogCelestialSphereChooser {
 
     }
 
-    public Sphere getSelectedBody() {
+    public Object getSelectedBody() {
         return bodyAdapter.getSelectedSphere();
+    }
+
+    public boolean isVisible() {
+        if(dialog_celestial_body_chooser_layout.getVisibility() == View.VISIBLE){
+            return true;
+        } else {
+            return false;
+        }
+
     }
 }

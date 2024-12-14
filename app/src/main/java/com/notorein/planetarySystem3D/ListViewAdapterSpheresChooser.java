@@ -10,22 +10,21 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.List;
 
-public class ListViewAdapterSpheresChooser extends ArrayAdapter<Sphere> {
+public class ListViewAdapterSpheresChooser extends ArrayAdapter<Object> {
 
     private  MainActivity activityMain;
     private Context context;
-    private ArrayList<Sphere> spheres;
-    private Sphere selectedSphere;
+    private ArrayList<Object> Objects;
+    private Object selectedObject;
     private TextView sphereName;
     private ImageView findPlanet;
     private ImageView ivFollow;
 
-    public ListViewAdapterSpheresChooser(Context context, ArrayList<Sphere> spheres, MainActivity activityMain) {
-        super(context,0, spheres);
+    public ListViewAdapterSpheresChooser(Context context, ArrayList<Object> Objects, MainActivity activityMain) {
+        super(context,0, Objects);
         this.context = context;
-        this.spheres = spheres;
+        this.Objects = Objects;
         this.activityMain = activityMain;
     }
 
@@ -36,10 +35,10 @@ public class ListViewAdapterSpheresChooser extends ArrayAdapter<Sphere> {
             listItemView = LayoutInflater.from(context).inflate(R.layout.list_item_body, parent, false);
         }
 
-        selectedSphere = spheres.get(position);
+        selectedObject = Objects.get(position);
 
         sphereName = listItemView.findViewById(R.id.tvBodyName);
-        sphereName.setText(selectedSphere.getName());
+        sphereName.setText(selectedObject.getName());
 
         findPlanet = listItemView.findViewById(R.id.findPlanet);
         ivFollow = listItemView.findViewById(R.id.ivFollow);
@@ -48,12 +47,12 @@ public class ListViewAdapterSpheresChooser extends ArrayAdapter<Sphere> {
             @Override
             public void onClick(View v) {
                 // Show the menu for the selected sphere
-                selectedSphere = spheres.get(position);
-                selectedSphere.setPosition(position);
-                activityMain.getSpheres().get(position).setPosition(position);
-                Toast.makeText(context, "Set " + selectedSphere.getName() + " properties", Toast.LENGTH_SHORT).show();
-                activityMain.getDialogCelestialSphereValues().setSelectedSphere(selectedSphere);
-                activityMain.getDialogCelestialSphereValues().initSphereValueMenu(selectedSphere); // Sets the values of the selected sphere to the EditText fields in DialogCelestialsphereValues
+//                selectedObject = Objects.get(position);
+//                selectedObject.setPosition(position);
+//                activityMain.getSpheres().get(position).setPosition(position);
+                Toast.makeText(context, "Set " + selectedObject.getName() + " properties", Toast.LENGTH_SHORT).show();
+                activityMain.getDialogCelestialSphereValues().setSelectedSphere(selectedObject);
+                activityMain.getDialogCelestialSphereValues().initSphereValueMenu(selectedObject); // Sets the values of the selected sphere to the EditText fields in DialogCelestialSphereValues
 
                 activityMain.getDialogCelestialSphereValues().setActivityMain(activityMain);
                 activityMain.getDialogCelestialSphereChooser().setVisible(false);
@@ -77,18 +76,18 @@ public class ListViewAdapterSpheresChooser extends ArrayAdapter<Sphere> {
             public void onClick(View v) {
                 // Follow the selected sphere
                 UIClass.animateClick(ivFollow);
-                selectedSphere = spheres.get(position);
+                selectedObject = Objects.get(position);
 //                activityMain.getSphereSimulation().setAutoFollow(true);
                 activityMain.setIndexOfSelectedSphereToFollow(position);
 //                activityMain.getSphereSimulation().searchFunction(position);
-                Toast.makeText(context, "Following " + selectedSphere.getName(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Following " + selectedObject.getName(), Toast.LENGTH_SHORT).show();
             }
         });
 
         return listItemView;
     }
 
-    public Sphere getSelectedSphere() {
-        return selectedSphere;
+    public Object getSelectedSphere() {
+        return selectedObject;
     }
 }

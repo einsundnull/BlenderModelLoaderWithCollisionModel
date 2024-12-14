@@ -5,7 +5,7 @@ plugins {
 android {
     compileSdkVersion 34
 
-    namespace 'com.notorein.planetarySystem3D' // Specify the namespace (should match the package name in AndroidManifest.xml)
+    namespace 'com.notorein.planetarySystem3D'
 
     defaultConfig {
         applicationId "com.notorein.planetarySystem3D"
@@ -13,6 +13,9 @@ android {
         targetSdkVersion 34
         versionCode 1
         versionName "1.0"
+
+        // Add OpenGL ES version specification
+
     }
 
     buildTypes {
@@ -27,10 +30,4 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.4.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.0'
     implementation 'com.google.android.material:material:1.9.0'
-
-
-
-
-
-
 }

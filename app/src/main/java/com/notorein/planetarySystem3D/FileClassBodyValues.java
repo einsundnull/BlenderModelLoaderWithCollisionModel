@@ -15,29 +15,31 @@ public class FileClassBodyValues {
     private static final String FILE_NAME = "bodies.json";
     private static MainActivity mainActivity;
 
-
     public FileClassBodyValues(MainActivity mainActivity) {
         this.mainActivity = mainActivity;
     }
-    public static void saveSpheres(Context context, List<Sphere> bodies) {
+
+
+    public static void saveSpheres(Context context, List<Object> bodies) {
         File file = new File(context.getFilesDir(), FILE_NAME);
         try (FileWriter writer = new FileWriter(file)) {
             JsonWriter jsonWriter = new JsonWriter(writer);
             jsonWriter.beginArray();
-            for (Sphere body : bodies) {
+            for (Object body : bodies) {
                 jsonWriter.beginObject();
                 jsonWriter.name("x").value(body.getX());
                 jsonWriter.name("y").value(body.getY());
-                jsonWriter.name("z").value(body.getY());
+                jsonWriter.name("z").value(body.getZ());
                 jsonWriter.name("vx").value(body.getVx());
                 jsonWriter.name("vy").value(body.getVy());
-                jsonWriter.name("vz").value(body.getVy());
+                jsonWriter.name("vz").value(body.getVz());
                 jsonWriter.name("mass").value(body.getMass());
-                jsonWriter.name("color").value(body.getColor());
-                jsonWriter.name("colorTrail").value(body.getColorTrail());
                 jsonWriter.name("size").value(body.getSize());
-                jsonWriter.name("trailLength").value(body.getTrailLength());
-                jsonWriter.name("trailThickness").value(body.getTrailThickness());
+                jsonWriter.name("followsGravity").value(body.isFollowGravity());
+                jsonWriter.name("isTiltEnabled").value(body.isTiltEnabled());
+                jsonWriter.name("attractsOther").value(body.isAttractsOther());
+                jsonWriter.name("isAttractedByOther").value(body.isAttractedByOther());
+                jsonWriter.name("bouncesOff").value(body.isAttractedByOther());
                 jsonWriter.name("name").value(body.getName());
                 jsonWriter.endObject();
             }
@@ -49,19 +51,22 @@ public class FileClassBodyValues {
     }
 
 
-    public static ArrayList<Sphere> loadSpheres(Context context) {
+
+
+    public static ArrayList<Object> loadSpheres(Context context) {
         File file = new File(context.getFilesDir(), FILE_NAME);
-        ArrayList<Sphere> spheres = new ArrayList<>();
+        ArrayList<Object> Objects = new ArrayList<>();
         if (file.exists()) {
             try (FileReader reader = new FileReader(file)) {
                 JsonReader jsonReader = new JsonReader(reader);
                 jsonReader.beginArray();
                 while (jsonReader.hasNext()) {
                     jsonReader.beginObject();
-                    double x = 0, y = 0, z = 0, vx = 0, vy = 0, vz = 0, mass = 0;
-                    int color = 0, colorTrail = 0;
-                    float size = 0, trailLength = 0, trailThickness = 0;
+                    double x = 0, y = 0, z = 0, vx = 0, vy = 0, vz = 0;
+                    int color = 0,  mass = 0, size = 0;
+
                     String name = "";
+                    boolean attractsOther = true, isAttractedByOther = true , isTiltEnabled = true,followsGravity = true , bouncesOff = true;
                     while (jsonReader.hasNext()) {
                         String key = jsonReader.nextName();
                         switch (key) {
@@ -72,7 +77,7 @@ public class FileClassBodyValues {
                                 y = jsonReader.nextDouble();
                                 break;
                             case "z":
-                                y = jsonReader.nextDouble();
+                                z = jsonReader.nextDouble();
                                 break;
                             case "vx":
                                 vx = jsonReader.nextDouble();
@@ -81,32 +86,38 @@ public class FileClassBodyValues {
                                 vy = jsonReader.nextDouble();
                                 break;
                             case "vz":
-                                vy = jsonReader.nextDouble();
+                                vz = jsonReader.nextDouble();
                                 break;
                             case "mass":
-                                mass = jsonReader.nextDouble();
+                                mass = jsonReader.nextInt();
                                 break;
                             case "color":
                                 color = jsonReader.nextInt();
                                 break;
-                            case "colorTrail":
-                                colorTrail = jsonReader.nextInt();
-                                break;
                             case "size":
-                                size = (float) jsonReader.nextDouble();
+                                size = jsonReader.nextInt();
                                 break;
-                            case "trailLength":
-                                trailLength = (float) jsonReader.nextDouble();
+                            case "followsGravity":
+                                isTiltEnabled = jsonReader.nextBoolean();
                                 break;
-                            case "trailThickness":
-                                trailThickness = (float) jsonReader.nextDouble();
+                            case "isTiltEnabled":
+                                isAttractedByOther = jsonReader.nextBoolean();
+                                break;
+                            case "attractsOther":
+                                attractsOther = jsonReader.nextBoolean();
+                                break;
+                            case "isAttractedByOther":
+                                isAttractedByOther = jsonReader.nextBoolean();
+                                break;
+                            case "bouncesOff":
+                                bouncesOff = jsonReader.nextBoolean();
                                 break;
                             case "name":
                                 name = jsonReader.nextString();
                                 break;
                         }
                     }
-                    spheres.add(new Sphere(spheres.size() -1,x, y, z, vx, vy, vz, mass, color, colorTrail, size, trailLength, trailThickness, name));
+                    Objects.add(new ObjectSphere(Objects.size() -1,x, y, z, vx, vy, vz, mass, color,  size,followsGravity,isTiltEnabled,attractsOther ,isAttractedByOther,bouncesOff,name));
                     jsonReader.endObject();
                 }
                 jsonReader.endArray();
@@ -116,9 +127,9 @@ public class FileClassBodyValues {
             }
         } else {
             // Load default spheres if the file does not exist
-       
-            spheres = mainActivity.initSpheres();
+            Objects = mainActivity.initSpheres();
         }
-        return spheres;
+        return Objects;
     }
+
 }

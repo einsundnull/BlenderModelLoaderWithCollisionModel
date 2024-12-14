@@ -17,9 +17,10 @@ import java.util.ArrayList;
 public class DialogCelestialSphereValues {
 
     private final Context context;
-//    private List<Body> celestialBodies;
+    //    private List<Body> celestialBodies;
     private double gravityStrength;
-    public Sphere selectedSphere;
+    public Object selectedObjectSphere;
+
     private AlertDialog menuDialog;
     private AlertDialog addBodyDialog;
     private AlertDialog removeBodyDialog;
@@ -51,7 +52,7 @@ public class DialogCelestialSphereValues {
         this.activityMain = activityMain;
         dialog_body_values_layout = this.activityMain.findViewById(R.id.dialog_body_values_layout);
         initViews();
-        initSphereValueMenu(selectedSphere);
+        initSphereValueMenu(selectedObjectSphere);
     }
 
     public void setActivityMain(MainActivity activityMain) {
@@ -59,7 +60,7 @@ public class DialogCelestialSphereValues {
     }
 
     private void initViews() {
-        tvName= dialog_body_values_layout.findViewById(R.id.tvName);
+        tvName = dialog_body_values_layout.findViewById(R.id.tvName);
         etMass = dialog_body_values_layout.findViewById(R.id.etMass);
         etSize = dialog_body_values_layout.findViewById(R.id.etSize);
         etTrailLength = dialog_body_values_layout.findViewById(R.id.etTrailLength);
@@ -83,7 +84,7 @@ public class DialogCelestialSphereValues {
                 UIClass.animateClick(setLocation);
                 activityMain.getDialogCelestialSphereChooser().setVisible(false);
                 setVisible(false);
-                activityMain.getDialogPositionOnScreen().setSelectedBody(selectedSphere);
+                activityMain.getDialogPositionOnScreen().setSelectedBody(selectedObjectSphere);
                 activityMain.getDialogPositionOnScreen().setSelectedBodyValues();
                 activityMain.getDialogPositionOnScreen().setVisible(true);
             }
@@ -105,15 +106,15 @@ public class DialogCelestialSphereValues {
     }
 
     private void initializeRemoveBodyDialog() {
-        if ( activityMain.getSpheres().isEmpty()) {
+        if (activityMain.getSpheres().isEmpty()) {
             Toast.makeText(context, "No celestial bodies to remove", Toast.LENGTH_SHORT).show();
             return;
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle("Remove Celestial Body");
-        final CharSequence[] items = new CharSequence[ activityMain.getSpheres().size()];
-        for (int i = 0; i <  activityMain.getSpheres().size(); i++) {
+        final CharSequence[] items = new CharSequence[activityMain.getSpheres().size()];
+        for (int i = 0; i < activityMain.getSpheres().size(); i++) {
             items[i] = "Body " + (i + 1);
         }
         builder.setItems(items, new DialogInterface.OnClickListener() {
@@ -146,8 +147,8 @@ public class DialogCelestialSphereValues {
         setGravityStrengthDialog = builder.create();
     }
 
-    public void initSphereValueMenu(Sphere selectedSphere) {
-        if (this.selectedSphere == null) {
+    public void initSphereValueMenu(Object selectedObjectSphere) {
+        if (this.selectedObjectSphere == null) {
 //            Toast.makeText(context, "No celestial body selected", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -161,7 +162,7 @@ public class DialogCelestialSphereValues {
                 activityMain.getDialogCelestialSphereChooser().setVisible(false);
                 setVisible(false);
 
-                activityMain.getDialogPositionOnScreen().setSelectedBody(DialogCelestialSphereValues.this.selectedSphere);
+                activityMain.getDialogPositionOnScreen().setSelectedBody(DialogCelestialSphereValues.this.selectedObjectSphere);
                 activityMain.getDialogPositionOnScreen().setSelectedBodyValues();
                 activityMain.getDialogPositionOnScreen().setVisible(true);
             }
@@ -184,34 +185,34 @@ public class DialogCelestialSphereValues {
         buttonOk.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                try {
-                    double mass = Float.parseFloat(etMass.getText().toString());
-                    float size = Float.parseFloat(etSize.getText().toString());
-                    int trailLength = Integer.parseInt(etTrailLength.getText().toString());
-                    double vx = Float.parseFloat(etVx.getText().toString());
-                    double vy = Float.parseFloat(etVy.getText().toString());
-                    double vz = Float.parseFloat(etVz.getText().toString());
-                    double x = Double.parseDouble(etX.getText().toString());
-                    double y = Double.parseDouble(etY.getText().toString());
-                    double z = Double.parseDouble(etZ.getText().toString());
-                    int color = ((ColorDrawable) colorView.getBackground()).getColor();
-                    int trailColor = ((ColorDrawable) trailColorView.getBackground()).getColor();
-
-                    Sphere updatedBody = new Sphere(selectedSphere.getPositionIndex(),x, y,z, vx, vy, vz, mass, color, trailColor, size, trailLength, 0.5f, DialogCelestialSphereValues.this.selectedSphere.getName());
-                    updatedBody.setTrail(new ArrayList<>(trailLength));
-                    int index = activityMain.getSpheres().indexOf(selectedSphere);
-                    if (index != -1) {
-                        activityMain.getSpheres().set(index, updatedBody);
-                    }
-                    FileClassBodyValues.saveSpheres(context,  activityMain.getSpheres());
-                    activityMain.getDialogCelestialSphereChooser().setVisible(true);
-                    activityMain.getDialogCelestialSphereValues().setVisible(true);
-                    activityMain.setButtonsVisible(true);
-                    setVisible(false);
-                    Toast.makeText(context, "Body Properties Set", Toast.LENGTH_SHORT).show();
-                } catch (NumberFormatException e) {
-                    Toast.makeText(context, "Invalid input", Toast.LENGTH_SHORT).show();
-                }
+//                try {
+//                    double mass = Float.parseFloat(etMass.getText().toString());
+//                    float size = Float.parseFloat(etSize.getText().toString());
+//                    int trailLength = Integer.parseInt(etTrailLength.getText().toString());
+//                    double vx = Float.parseFloat(etVx.getText().toString());
+//                    double vy = Float.parseFloat(etVy.getText().toString());
+//                    double vz = Float.parseFloat(etVz.getText().toString());
+//                    double x = Double.parseDouble(etX.getText().toString());
+//                    double y = Double.parseDouble(etY.getText().toString());
+//                    double z = Double.parseDouble(etZ.getText().toString());
+//                    int color = ((ColorDrawable) colorView.getBackground()).getColor();
+//                    int trailColor = ((ColorDrawable) trailColorView.getBackground()).getColor();
+//
+//                    Object updatedBody = new Object(selectedObjectSphere.getPositionIndex(),false,true, x, y, z, vx, vy, vz, mass, color, trailColor, size, trailLength, 0.5f, selectedObjectSphere.getName());
+////                    updatedBody.setTrail(new ArrayList<>(trailLength));
+//                    int index = activityMain.getSpheres().indexOf(selectedObjectSphere);
+//                    if (index != -1) {
+//                        activityMain.getSpheres().set(index, updatedBody);
+//                    }
+//                    FileClassBodyValues.saveSpheres(context, activityMain.getSpheres());
+//                    activityMain.getDialogCelestialSphereChooser().setVisible(true);
+//                    activityMain.getDialogCelestialSphereValues().setVisible(true);
+//                    activityMain.setButtonsVisible(true);
+//                    setVisible(false);
+//                    Toast.makeText(context, "Body Properties Set", Toast.LENGTH_SHORT).show();
+//                } catch (NumberFormatException e) {
+//                    Toast.makeText(context, "Invalid input", Toast.LENGTH_SHORT).show();
+//                }
             }
         });
 
@@ -227,18 +228,18 @@ public class DialogCelestialSphereValues {
     }
 
     public void setSelectedBodyValues() {
-        tvName.setText(selectedSphere.getName());
-        etMass.setText(String.valueOf(selectedSphere.getMass()));
-        etSize.setText(String.valueOf(selectedSphere.getSize()));
-        etTrailLength.setText(String.valueOf(selectedSphere.getTrailLength()));
-        etVx.setText(String.valueOf(selectedSphere.getVx()));
-        etVy.setText(String.valueOf(selectedSphere.getVy()));
-        etVz.setText(String.valueOf(selectedSphere.getVz())); // Assuming vz is not used in the Body class
-        etX.setText(String.valueOf(selectedSphere.getX()));
-        etY.setText(String.valueOf(selectedSphere.getY()));
-        etZ.setText(String.valueOf(selectedSphere.getZ()));// Assuming z is not used in the Body class
-        colorView.setBackgroundColor(selectedSphere.getColor());
-        trailColorView.setBackgroundColor(selectedSphere.getColorTrail());
+        tvName.setText(selectedObjectSphere.getName());
+        etMass.setText(String.valueOf(selectedObjectSphere.getMass()));
+        etSize.setText(String.valueOf(selectedObjectSphere.getSize()));
+//        etTrailLength.setText(String.valueOf(selectedObjectSphere.getTrailLength()));
+        etVx.setText(String.valueOf(selectedObjectSphere.getVx()));
+        etVy.setText(String.valueOf(selectedObjectSphere.getVy()));
+        etVz.setText(String.valueOf(selectedObjectSphere.getVz())); // Assuming vz is not used in the Body class
+        etX.setText(String.valueOf(selectedObjectSphere.getX()));
+        etY.setText(String.valueOf(selectedObjectSphere.getY()));
+        etZ.setText(String.valueOf(selectedObjectSphere.getZ()));// Assuming z is not used in the Body class
+        colorView.setBackgroundColor(selectedObjectSphere.getColor());
+        trailColorView.setBackgroundColor(selectedObjectSphere.getColorTrail());
     }
 
     private void showColorPickerDialog(final View colorView) {
@@ -249,15 +250,15 @@ public class DialogCelestialSphereValues {
                 colorView.setBackgroundColor(color);
             }
         });
-        colorPickerDialog.show(((ActivityMain) context).getSupportFragmentManager(), "colorPicker");
+        colorPickerDialog.show(((MainActivity) context).getSupportFragmentManager(), "colorPicker");
     }
 
-    public void setSelectedSphere(Sphere selectedSphere) {
-        this.selectedSphere = selectedSphere;
+    public void setSelectedSphere(Object selectedObjectSphere) {
+        this.selectedObjectSphere = selectedObjectSphere;
     }
 
-    public Sphere getSelectedSphere() {
-        return this.selectedSphere;
+    public Object getSelectedSphere() {
+        return this.selectedObjectSphere;
     }
 
     public void setVisible(boolean visible) {
@@ -266,6 +267,14 @@ public class DialogCelestialSphereValues {
             dialog_body_values_layout.setVisibility(View.VISIBLE);
         } else {
             dialog_body_values_layout.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    public boolean isVisible() {
+        if (dialog_body_values_layout.getVisibility() == View.VISIBLE) {
+            return true;
+        } else {
+            return false;
         }
     }
 }

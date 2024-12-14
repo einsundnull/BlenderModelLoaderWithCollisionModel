@@ -1,6 +1,6 @@
 package com.notorein.planetarySystem3D;
 
-//import static com.notorein.planetarysystem.ViewSimulation.setBodyPostion;
+//import static com.notorein.planetarysystem.ViewSimulation.setBodyPosition;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -20,9 +20,9 @@ public class DialogPositionOnScreen {
     private final Context context;
     private MainActivity activityMain;
 
-    private Sphere selectedBody;
+    private Object selectedBody;
 
-    private ImageView help_postion_layout;
+    private ImageView help_position_layout;
     private TextView tvPlanetName;
     private TextView tvCoordinatesX;
     private TextView tvCoordinatesY;
@@ -45,7 +45,7 @@ public class DialogPositionOnScreen {
 
     @SuppressLint("ClickableViewAccessibility")
     private void init() {
-        help_postion_layout = dialog_set_body_position_layout.findViewById(R.id.help_postion_layout);
+        help_position_layout = dialog_set_body_position_layout.findViewById(R.id.help_position_layout);
         tvPlanetName = dialog_set_body_position_layout.findViewById(R.id.tvPlanetName);
         tvCoordinatesX = dialog_set_body_position_layout.findViewById(R.id.tvCoordinatesX);
         tvCoordinatesY = dialog_set_body_position_layout.findViewById(R.id.tvCoordinatesY);
@@ -77,10 +77,10 @@ public class DialogPositionOnScreen {
         });
 
 
-        help_postion_layout.setOnClickListener(new View.OnClickListener() {
+        help_position_layout.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                UIClass.animateClick(help_postion_layout);
+                UIClass.animateClick(help_position_layout);
             }
         });
 
@@ -88,7 +88,7 @@ public class DialogPositionOnScreen {
             @Override
             public void onClick(View v) {
                 if (selectedBody != null) {
-//                    setBodyPostion = false;
+//                    setBodyPosition = false;
                     float size = sbSize.getProgress() / 100.0f;
                     selectedBody.setSize(size);
                     Toast.makeText(context, "Body Size Set", Toast.LENGTH_SHORT).show();
@@ -103,7 +103,6 @@ public class DialogPositionOnScreen {
             @Override
             public void onClick(View v) {
                 UIClass.animateClick(btnCancel);
-//                setBodyPostion = false;
                 activityMain.getDialogCelestialSphereChooser().setVisible(true);
                 activityMain.getDialogCelestialSphereValues().setVisible(true);
                 setVisible(false);
@@ -154,11 +153,11 @@ public class DialogPositionOnScreen {
         }
     }
 
-    public Sphere getSelectedBody() {
+    public Object getSelectedBody() {
         return selectedBody;
     }
 
-    public void setSelectedBody(Sphere selectedBody) {
+    public void setSelectedBody(Object selectedBody) {
         this.selectedBody = selectedBody;
     }
 

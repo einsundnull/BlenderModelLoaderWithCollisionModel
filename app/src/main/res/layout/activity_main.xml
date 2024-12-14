@@ -7,7 +7,7 @@
 
     <android.opengl.GLSurfaceView
         android:id="@+id/glSurfaceView"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -21,8 +21,7 @@
         android:layout_marginTop="8dp"
         android:layout_marginEnd="8dp"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/follow_round" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
         android:id="@+id/button_add"
@@ -130,8 +129,8 @@
     <include
         android:id="@+id/dialog_celestial_body_chooser_layout"
         layout="@layout/dialog_celestial_body_chooser_layout"
-        android:layout_width="300dp"
-        android:layout_height="300dp"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
@@ -162,6 +161,17 @@
         app:layout_constraintStart_toStartOf="parent" />
 
     <!-- Add the SeekBar for camera pitch adjustment (vertical) -->
+
+    <ImageView
+        android:id="@+id/button_toggle_tilt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="52dp"
+        android:src="@drawable/baseline_filter_tilt_shift_24"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <com.google.android.material.slider.Slider
         android:id="@+id/slider_camera_pitch"
         android:layout_width="0dp"
@@ -171,7 +181,6 @@
         app:layout_constraintBottom_toTopOf="@+id/seekBar_camera_yaw"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
-
 
     <!-- Add the SeekBar for camera yaw adjustment (horizontal) -->
     <com.google.android.material.slider.Slider
@@ -183,5 +192,37 @@
         app:layout_constraintBottom_toTopOf="@+id/button_menu"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Add the Slider for tilt sensitivity -->
+    <com.google.android.material.slider.Slider
+        android:id="@+id/slider_tilt_sensitivity"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintBottom_toTopOf="@+id/slider_camera_pitch"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Add buttons to toggle tilt for each objectSphere -->
+
+    <ImageView
+        android:id="@+id/button_toggle_tilt_sphere_0"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintEnd_toStartOf="@+id/button_toggle_tilt_sphere_1"
+        app:layout_constraintTop_toTopOf="@+id/button_toggle_tilt_sphere_1"
+        app:srcCompat="@drawable/baseline_filter_tilt_shift_24" />
+
+    <ImageView
+        android:id="@+id/button_toggle_tilt_sphere_1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintEnd_toStartOf="@+id/button_toggle_tilt"
+        app:layout_constraintTop_toTopOf="@+id/button_toggle_tilt"
+        app:srcCompat="@drawable/baseline_filter_tilt_shift_24" />
+
+    <!-- Add more buttons for other objects as needed -->
 
 </androidx.constraintlayout.widget.ConstraintLayout>

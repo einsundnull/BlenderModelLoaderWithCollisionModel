@@ -1,10 +1,21 @@
 package com.notorein.planetarySystem3D;
 
+import static android.content.ContentValues.TAG;
+
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.content.Context;
+import android.content.pm.ConfigurationInfo;
 import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -16,18 +27,21 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GestureDetectorCompat;
 
 import com.google.android.material.slider.Slider;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
-
+public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private GLSurfaceView glSurfaceView;
+    private ShadowMapRenderer shadowMapRenderer;
+    private GestureDetectorCompat gestureDetector;
+
     private Context context;
     private ListView dialog_celestial_body_chooser_list_view;
     private ListViewAdapterSpheresChooser spheresAdapter;
-    private ImageView menuButton, buttonRemove, buttonAdd, buttonReset, buttonSpeedUp, buttonPlay, buttonSpeedDown;
+    private ImageView menuButton, buttonRemove, buttonAdd, buttonReset, buttonSpeedUp, buttonPlay, buttonSpeedDown, button_follow_unfollow, buttonToggleTilt;
     private float trailThickness = 5.5f;
     private FileClassBodyValues bodyStorage;
     private DialogCelestialSphereChooser dialogCelestialSphereChooser;
@@ -36,158 +50,114 @@ public class MainActivity extends AppCompatActivity {
     private DialogPositionOnScreen dialogPositionOnScreen;
     private TextView tvPositionXOnScreen, tvPositionYOnScreen, tvPositionZOnScreen;
     private int screenWidth, screenHeight;
-    private ImageView button_follow_unfollow;
     private float cameraSensitivity = 0.1f; // Reduced sensitivity
     private float touchX, touchY;
     private float cameraAngleX = 0, cameraAngleY = 0;
     private float cameraPosX = 0, cameraPosY = 0, cameraPosZ = -10.0f;
     private float scaleFactor = 100.0f;
     private boolean isScaling;
-    private boolean pause;
+    private boolean pause = true;
     private ScaleGestureDetector scaleGestureDetector;
-    private ArrayList<Sphere> spheres;
-    private CubeRenderer renderer;
+    private ArrayList<Object> objects;
     private int indexOfSelectedSphereToFollow = 3;
-    private Slider sliderCameraPitch, sliderCameraYaw;
+    private Slider sliderCameraPitch, sliderCameraYaw, sliderTiltSensitivity;
 
-    private Grid gridXY, gridXZ, gridYZ;
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private boolean setTilt = false;
+    private float[] gravity = new float[3];
+    private float[] linear_acceleration = new float[3];
+    private float tiltSensitivity = 1f; // Default tilt sensitivity
+    private ObjectPlane plane;
+    private LightSource lightSource;
 
-    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Remove title bar
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        setContentView(R.layout.activity_main);
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.hide();
         }
 
-        this.context = this;
-        glSurfaceView = findViewById(R.id.glSurfaceView);
-        glSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
-        bodyStorage = new FileClassBodyValues(this);
-        spheres = bodyStorage.loadSpheres(context);
+        // Set the layout
+        setContentView(R.layout.activity_main);
 
+        // Context setup
+        this.context = this;
+
+        // Initialize components
         initSpheres();
-        initGrids();
         initDialogs();
         initViews();
-        initOnClickListeners();
-        setCoordinatesText(0, 0, 0);
-        spheresAdapter = new ListViewAdapterSpheresChooser(context, spheres, this);
-        dialog_celestial_body_chooser_list_view.setAdapter(spheresAdapter);
+        initLightSource();
 
-        renderer = new CubeRenderer(context, this, spheres, gridXY, gridXZ, gridYZ);
-        glSurfaceView.setRenderer(renderer);
+        // Screen dimensions
+        screenWidth = getResources().getDisplayMetrics().widthPixels;
+        screenHeight = getResources().getDisplayMetrics().heightPixels;
 
-        // Initialize the ScaleGestureDetector
-        scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        // Find GLSurfaceView from layout
+        glSurfaceView = findViewById(R.id.glSurfaceView);
+
+        // Important rendering configurations
+        glSurfaceView.setEGLContextClientVersion(2);
+        glSurfaceView.setEGLConfigChooser(8, 8, 8, 8, 16, 0);
+        glSurfaceView.setPreserveEGLContextOnPause(true);
+
+        // Create renderer
+        shadowMapRenderer = new ShadowMapRenderer(context, this, objects, screenWidth, screenHeight);
+        glSurfaceView.setRenderer(shadowMapRenderer);
+        glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
+
+        // Gesture detector setup
+        gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
-            public boolean onScale(ScaleGestureDetector detector) {
-                scaleFactor *= detector.getScaleFactor();
-                scaleFactor = Math.max(0.0001f, Math.min(scaleFactor, 5000.0f));
-                isScaling = true;
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                // Handle scroll events
+                cameraPosX += distanceX * cameraSensitivity;
+                cameraPosY -= distanceY * cameraSensitivity;
                 return true;
             }
 
             @Override
-            public boolean onScaleBegin(ScaleGestureDetector detector) {
-                isScaling = true;
-                return super.onScaleBegin(detector);
-            }
-
-            @Override
-            public void onScaleEnd(ScaleGestureDetector detector) {
-                isScaling = false;
-                super.onScaleEnd(detector);
+            public boolean onDoubleTap(MotionEvent e) {
+                // Handle double tap events
+                togglePause();
+                buttonPlay.setImageLevel(pause ? 1 : 0);
+                return true;
             }
         });
 
-        // Set the OnTouchListener for the GLSurfaceView
+        // Touch event handling for GLSurfaceView
         glSurfaceView.setOnTouchListener(new View.OnTouchListener() {
-            private float initialY1, initialY2;
-            private boolean isTwoFingerMove = false;
-            private float previousPitch = 0; // Store the previous pitch value
-
             @Override
             public boolean onTouch(View v, MotionEvent event) {
+                gestureDetector.onTouchEvent(event);
                 scaleGestureDetector.onTouchEvent(event);
-
-                switch (event.getActionMasked()) {
-                    case MotionEvent.ACTION_DOWN:
-                        touchX = event.getX();
-                        touchY = event.getY();
-                        break;
-                    case MotionEvent.ACTION_POINTER_DOWN:
-                        if (event.getPointerCount() == 2) {
-                            initialY1 = event.getY(0);
-                            initialY2 = event.getY(1);
-                            isTwoFingerMove = true;
-                        }
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        if (isTwoFingerMove && event.getPointerCount() == 2) {
-                            float currentY1 = event.getY(0);
-                            float currentY2 = event.getY(1);
-                            float dy1 = currentY1 - initialY1;
-                            float dy2 = currentY2 - initialY2;
-                            float averageDy = (dy1 + dy2) / 2;
-
-                            // Adjust the camera pitch based on the average vertical movement
-                            cameraAngleX = previousPitch + averageDy * cameraSensitivity * 10;
-
-                            initialY1 = currentY1;
-                            initialY2 = currentY2;
-                        } else if (!isScaling) {
-                            float dx = ((event.getX() - touchX) * cameraSensitivity);
-                            float dy = ((event.getY() - touchY) * cameraSensitivity);
-                            cameraPosX += dx;
-                            cameraPosY -= dy;
-                            touchX = event.getX();
-                            touchY = event.getY();
-                        }
-                        break;
-                    case MotionEvent.ACTION_UP:
-                    case MotionEvent.ACTION_POINTER_UP:
-                        isScaling = false;
-                        isTwoFingerMove = false;
-                        previousPitch = cameraAngleX; // Update the previous pitch value
-                        break;
-                }
                 return true;
             }
         });
 
-        // Initialize the Slider for pitch and set the listener
-        sliderCameraPitch = findViewById(R.id.slider_camera_pitch);
-        sliderCameraPitch.setValueFrom(0);
-        sliderCameraPitch.setValueTo(360);
-        sliderCameraPitch.setValue(180); // Set the initial value to the middle
-        sliderCameraPitch.addOnChangeListener(new Slider.OnChangeListener() {
-            @Override
-            public void onValueChange(Slider slider, float value, boolean fromUser) {
-                if (fromUser) {
-                    // Convert the value to a pitch value
-                    cameraAngleX = value - 180; // Convert to range -180 to 180
-                }
-            }
-        });
+        // Remaining initialization
+        initOnClickListeners();
+        setCoordinatesText(0, 0, 0);
+        buttonPlay.setImageLevel(pause ? 1 : 0);
 
-        // Initialize the Slider for yaw and set the listener
-        sliderCameraYaw = findViewById(R.id.seekBar_camera_yaw);
-        sliderCameraYaw.setValueFrom(0);
-        sliderCameraYaw.setValueTo(360);
-        sliderCameraYaw.setValue(180); // Set the initial value to the middle
-        sliderCameraYaw.addOnChangeListener(new Slider.OnChangeListener() {
-            @Override
-            public void onValueChange(Slider slider, float value, boolean fromUser) {
-                if (fromUser) {
-                    // Convert the value to a yaw value
-                    cameraAngleY = value - 180; // Convert to range -180 to 180
-                }
-            }
-        });
+        spheresAdapter = new ListViewAdapterSpheresChooser(context, objects, this);
+        dialog_celestial_body_chooser_list_view.setAdapter(spheresAdapter);
+
+        // Initialize the ScaleGestureDetector
+        setSliderAndDetector();
+    }
+
+    private void initLightSource() {
+        float[] lightAmbient = {0.5f, 0.5f, 0.5f, 1.0f};
+        float[] lightDiffuse = {1.0f, 1.0f, 1.0f, 1.0f};
+        float[] lightSpecular = {1.0f, 1.0f, 1.0f, 1.0f};
+        float[] lightPosition = {0.0f, 0.0f, 5.0f, 1.0f};
+        this.lightSource = new LightSource(lightAmbient, lightDiffuse, lightSpecular, lightPosition);
     }
 
     private void initViews() {
@@ -200,6 +170,7 @@ public class MainActivity extends AppCompatActivity {
         buttonSpeedUp = findViewById(R.id.button_speed_up);
         buttonPlay = findViewById(R.id.button_play);
         buttonSpeedDown = findViewById(R.id.button_speed_down);
+        buttonToggleTilt = findViewById(R.id.button_toggle_tilt);
 
         tvPositionXOnScreen = findViewById(R.id.tv_position_x_on_screen);
         tvPositionYOnScreen = findViewById(R.id.tv_position_y_on_screen);
@@ -214,6 +185,8 @@ public class MainActivity extends AppCompatActivity {
             }
             UIClass.animateClick(menuButton);
             getDialogCelestialSphereChooser().setVisible(true);
+            findViewById(R.id.seekBar_camera_yaw).setVisibility(View.INVISIBLE);
+            findViewById(R.id.slider_camera_pitch).setVisibility(View.INVISIBLE);
         });
 
         buttonAdd.setOnClickListener(v -> {
@@ -232,13 +205,17 @@ public class MainActivity extends AppCompatActivity {
 
         buttonReset.setOnClickListener(v -> {
             UIClass.animateClick(buttonReset);
-//            resetSimulation();
+            shadowMapRenderer.resetAnimation();
         });
 
         buttonSpeedUp.setOnClickListener(v -> {
             UIClass.animateClick(buttonSpeedUp);
-//            sphereSimulation.speedUpSimulation();
-//            sphereSimulation.speedUpSimulation();
+            shadowMapRenderer.speedUpSimulation();
+        });
+
+        buttonSpeedDown.setOnClickListener(v -> {
+            UIClass.animateClick(buttonSpeedDown);
+            shadowMapRenderer.speedDownSimulation();
         });
 
         buttonPlay.setOnClickListener(v -> {
@@ -247,39 +224,24 @@ public class MainActivity extends AppCompatActivity {
             buttonPlay.setImageLevel(pause ? 1 : 0);
         });
 
-        buttonSpeedDown.setOnClickListener(v -> {
-            UIClass.animateClick(buttonSpeedDown);
-//            sphereSimulation.speedDownSimulation();
-//            sphereSimulation.speedDownSimulation();
-        });
-
         button_follow_unfollow.setOnClickListener(v -> {
             UIClass.animateClick(button_follow_unfollow);
-//            sphereSimulation.setAutoFollow(!sphereSimulation.isAutoFollow());
-//            sphereSimulation.setAutoFollow(!sphereSimulation.isAutoFollow());
-//            Toast.makeText(context, "Auto Follow: " + spheres.get(sphereSimulation.getIndexOfSelectedSphereToFollow()).getName() + " " + sphereSimulation.isAutoFollow(), Toast.LENGTH_SHORT).show();
+        });
+
+        buttonToggleTilt.setOnClickListener(v -> {
+            UIClass.animateClick(buttonToggleTilt);
+            boolean isTiltEnabled = !setTilt;
+            toggleTilt(isTiltEnabled);
+            // Update UI to reflect the current state
         });
     }
 
-    public ArrayList<Sphere> initSpheres() {
-        spheres = new ArrayList<>();
-        spheres.add(new Sphere(0, ConfigCelestialSphere.Sun.X, ConfigCelestialSphere.Sun.Y, ConfigCelestialSphere.Sun.Z, ConfigCelestialSphere.Sun.VX, ConfigCelestialSphere.Sun.VY, ConfigCelestialSphere.Sun.VZ, ConfigCelestialSphere.Sun.MASS, ConfigCelestialSphere.Sun.COLOR, ConfigCelestialSphere.Sun.TRAIL_COLOR, ConfigCelestialSphere.Sun.SIZE, ConfigCelestialSphere.Sun.TRAIL_LENGTH, ConfigCelestialSphere.Sun.TRAIL_THICKNESS, ConfigCelestialSphere.Sun.NAME));
-        spheres.add(new Sphere(1, ConfigCelestialSphere.Mercury.X, ConfigCelestialSphere.Mercury.Y, ConfigCelestialSphere.Mercury.Z, ConfigCelestialSphere.Mercury.VX, ConfigCelestialSphere.Mercury.VY, ConfigCelestialSphere.Mercury.VZ, ConfigCelestialSphere.Mercury.MASS, ConfigCelestialSphere.Mercury.COLOR, ConfigCelestialSphere.Mercury.TRAIL_COLOR, ConfigCelestialSphere.Mercury.SIZE, ConfigCelestialSphere.Mercury.TRAIL_LENGTH, ConfigCelestialSphere.Mercury.TRAIL_THICKNESS, ConfigCelestialSphere.Mercury.NAME));
-        spheres.add(new Sphere(2, ConfigCelestialSphere.Venus.X, ConfigCelestialSphere.Venus.Y, ConfigCelestialSphere.Venus.Z, ConfigCelestialSphere.Venus.VX, ConfigCelestialSphere.Venus.VY, ConfigCelestialSphere.Venus.VZ, ConfigCelestialSphere.Venus.MASS, ConfigCelestialSphere.Venus.COLOR, ConfigCelestialSphere.Venus.TRAIL_COLOR, ConfigCelestialSphere.Venus.SIZE, ConfigCelestialSphere.Venus.TRAIL_LENGTH, ConfigCelestialSphere.Venus.TRAIL_THICKNESS, ConfigCelestialSphere.Venus.NAME));
-        spheres.add(new Sphere(3, ConfigCelestialSphere.Earth.X, ConfigCelestialSphere.Earth.Y, ConfigCelestialSphere.Earth.Z, ConfigCelestialSphere.Earth.VX, ConfigCelestialSphere.Earth.VY, ConfigCelestialSphere.Earth.VZ, ConfigCelestialSphere.Earth.MASS, ConfigCelestialSphere.Earth.COLOR, ConfigCelestialSphere.Earth.TRAIL_COLOR, ConfigCelestialSphere.Earth.SIZE, ConfigCelestialSphere.Earth.TRAIL_LENGTH, ConfigCelestialSphere.Earth.TRAIL_THICKNESS, ConfigCelestialSphere.Earth.NAME));
-        spheres.add(new Sphere(4, ConfigCelestialSphere.Moon.X, ConfigCelestialSphere.Moon.Y, ConfigCelestialSphere.Moon.Z, ConfigCelestialSphere.Moon.VX, ConfigCelestialSphere.Moon.VY, ConfigCelestialSphere.Moon.VZ, ConfigCelestialSphere.Moon.MASS, ConfigCelestialSphere.Moon.COLOR, ConfigCelestialSphere.Moon.TRAIL_COLOR, ConfigCelestialSphere.Moon.SIZE, ConfigCelestialSphere.Moon.TRAIL_LENGTH, ConfigCelestialSphere.Moon.TRAIL_THICKNESS, ConfigCelestialSphere.Moon.NAME));
-        spheres.add(new Sphere(5, ConfigCelestialSphere.Mars.X, ConfigCelestialSphere.Mars.Y, ConfigCelestialSphere.Mars.Z, ConfigCelestialSphere.Mars.VX, ConfigCelestialSphere.Mars.VY, ConfigCelestialSphere.Mars.VZ, ConfigCelestialSphere.Mars.MASS, ConfigCelestialSphere.Mars.COLOR, ConfigCelestialSphere.Mars.TRAIL_COLOR, ConfigCelestialSphere.Mars.SIZE, ConfigCelestialSphere.Mars.TRAIL_LENGTH, ConfigCelestialSphere.Mars.TRAIL_THICKNESS, ConfigCelestialSphere.Mars.NAME));
-        spheres.add(new Sphere(6, ConfigCelestialSphere.Jupiter.X, ConfigCelestialSphere.Jupiter.Y, ConfigCelestialSphere.Jupiter.Z, ConfigCelestialSphere.Jupiter.VX, ConfigCelestialSphere.Jupiter.VY, ConfigCelestialSphere.Jupiter.VZ, ConfigCelestialSphere.Jupiter.MASS, ConfigCelestialSphere.Jupiter.COLOR, ConfigCelestialSphere.Jupiter.TRAIL_COLOR, ConfigCelestialSphere.Jupiter.SIZE, ConfigCelestialSphere.Jupiter.TRAIL_LENGTH, ConfigCelestialSphere.Jupiter.TRAIL_THICKNESS, ConfigCelestialSphere.Jupiter.NAME));
-        spheres.add(new Sphere(7, ConfigCelestialSphere.Saturn.X, ConfigCelestialSphere.Saturn.Y, ConfigCelestialSphere.Saturn.Z, ConfigCelestialSphere.Saturn.VX, ConfigCelestialSphere.Saturn.VY, ConfigCelestialSphere.Saturn.VZ, ConfigCelestialSphere.Saturn.MASS, ConfigCelestialSphere.Saturn.COLOR, ConfigCelestialSphere.Saturn.TRAIL_COLOR, ConfigCelestialSphere.Saturn.SIZE, ConfigCelestialSphere.Saturn.TRAIL_LENGTH, ConfigCelestialSphere.Saturn.TRAIL_THICKNESS, ConfigCelestialSphere.Saturn.NAME));
-        return spheres;
+    public ArrayList<Object> initSpheres() {
+        objects = new ArrayList<>();
+        objects.add(new ObjectSphere(0, ObjectSphereConfig.Sun.X, ObjectSphereConfig.Sun.Y, ObjectSphereConfig.Sun.Z, ObjectSphereConfig.Sun.VX, ObjectSphereConfig.Sun.VY, ObjectSphereConfig.Sun.VZ, ObjectSphereConfig.Sun.MASS, ObjectSphereConfig.Sun.COLOR, ObjectSphereConfig.Sun.SIZE, ObjectSphereConfig.Sun.IS_TILT_ENABLED, ObjectSphereConfig.Sun.FOLLOWS_GRAVITY, ObjectSphereConfig.Sun.ATTRACTS_OTHER, ObjectSphereConfig.Sun.IS_ATTRACTED_BY_OTHER, ObjectSphereConfig.Sun.BOUNCES_OFF, ObjectSphereConfig.Sun.NAME));
+        objects.add(new ObjectSphere(1, ObjectSphereConfig.Mercury.X, ObjectSphereConfig.Mercury.Y, ObjectSphereConfig.Mercury.Z, ObjectSphereConfig.Mercury.VX, ObjectSphereConfig.Mercury.VY, ObjectSphereConfig.Mercury.VZ, ObjectSphereConfig.Mercury.MASS, ObjectSphereConfig.Mercury.COLOR, ObjectSphereConfig.Mercury.SIZE, ObjectSphereConfig.Mercury.IS_TILT_ENABLED, ObjectSphereConfig.Mercury.FOLLOWS_GRAVITY, ObjectSphereConfig.Mercury.ATTRACTS_OTHER, ObjectSphereConfig.Mercury.IS_ATTRACTED_BY_OTHER, ObjectSphereConfig.Mercury.BOUNCES_OFF, ObjectSphereConfig.Mercury.NAME));
+        return objects;
     }
-
-    private void initGrids() {
-        gridXY = new Grid(10, 200.0f, 300.1f, Color.WHITE, 0.0f, 0.0f, 0.0f, 30.0f); // XY-Ebene
-        gridXZ = new Grid(10, 200.0f, 300.1f, Color.WHITE, 0.0f, 0.0f, 0.0f, 30.0f); // XZ-Ebene
-        gridYZ = new Grid(10, 200.0f, 300.1f, Color.WHITE, 0.0f, 0.0f, 0.0f, 30.0f); // YZ-Ebene
-    }
-
 
     private void initDialogs() {
         dialogCelestialSphereChooser = new DialogCelestialSphereChooser(context, this);
@@ -303,6 +265,75 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.button_speed_up).setVisibility(visibility);
         findViewById(R.id.button_play).setVisibility(visibility);
         findViewById(R.id.button_speed_down).setVisibility(visibility);
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void setSliderAndDetector() {
+        scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                scaleFactor *= detector.getScaleFactor();
+                scaleFactor = Math.max(0.0001f, Math.min(scaleFactor, 5000.0f));
+                cameraPosZ = -10.0f * scaleFactor;
+                isScaling = true;
+                return true;
+            }
+
+            @Override
+            public boolean onScaleBegin(ScaleGestureDetector detector) {
+                isScaling = true;
+                return super.onScaleBegin(detector);
+            }
+
+            @Override
+            public void onScaleEnd(ScaleGestureDetector detector) {
+                isScaling = false;
+                super.onScaleEnd(detector);
+            }
+        });
+
+        // Initialize the Slider for pitch and set the listener
+        sliderCameraPitch = findViewById(R.id.slider_camera_pitch);
+        sliderCameraPitch.setValueFrom(0);
+        sliderCameraPitch.setValueTo(360);
+        sliderCameraPitch.setValue(180); // Set the initial value to the middle
+
+        // Initialize the Slider for yaw and set the listener
+        sliderCameraYaw = findViewById(R.id.seekBar_camera_yaw);
+        sliderCameraYaw.setValueFrom(0);
+        sliderCameraYaw.setValueTo(360);
+        sliderCameraYaw.setValue(180); // Set the initial value to the middle
+
+        // Initialize the Slider for tilt sensitivity and set the listener
+        sliderTiltSensitivity = findViewById(R.id.slider_tilt_sensitivity);
+        sliderTiltSensitivity.setValueFrom(0.01f);
+        sliderTiltSensitivity.setValueTo(1.0f);
+        sliderTiltSensitivity.setValue(tiltSensitivity / 9); // Set the initial value
+
+        sliderCameraPitch.addOnChangeListener((slider, value, fromUser) -> {
+            if (fromUser) {
+                shadowMapRenderer.setCameraPitch(value);
+            }
+        });
+
+        // Adjust camera yaw
+        sliderCameraYaw.addOnChangeListener((slider, value, fromUser) -> {
+            if (fromUser) {
+                shadowMapRenderer.setCameraYaw(value);
+            }
+        });
+
+        // Adjust tilt sensitivity
+        sliderTiltSensitivity.addOnChangeListener((slider, value, fromUser) -> {
+            if (fromUser) {
+                tiltSensitivity = value; // Update tilt sensitivity
+            }
+        });
+
+        // Initialize the SensorManager and accelerometer
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
     }
 
     public DialogCelestialSphereValues getDialogCelestialSphereValues() {
@@ -390,15 +421,87 @@ public class MainActivity extends AppCompatActivity {
         return pause;
     }
 
-    public ArrayList<Sphere> getSpheres() {
-        return spheres;
+    public ArrayList<Object> getSpheres() {
+        return objects;
     }
 
     public void setIndexOfSelectedSphereToFollow(int indexOfSelectedSphereToFollow) {
         this.indexOfSelectedSphereToFollow = indexOfSelectedSphereToFollow;
     }
 
+    @Override
+    public void onBackPressed() {
+        if (getDialogCelestialSphereChooser().isVisible()) {
+            getDialogCelestialSphereChooser().setVisible(false);
+            findViewById(R.id.slider_camera_pitch).setVisibility(View.VISIBLE);
+            findViewById(R.id.seekBar_camera_yaw).setVisibility(View.VISIBLE);
+        } else if (getDialogCelestialSphereValues().isVisible()) {
+            getDialogCelestialSphereChooser().setVisible(false);
+            getDialogCelestialSphereValues().setVisible(false);
+            findViewById(R.id.slider_camera_pitch).setVisibility(View.VISIBLE);
+            findViewById(R.id.seekBar_camera_yaw).setVisibility(View.VISIBLE);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
     public int getIndexOfSelectedSphereToFollow() {
         return indexOfSelectedSphereToFollow;
     }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            // Apply low-pass filter to isolate gravity
+            final float alpha = 0.8f;
+            gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0];
+            gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1];
+            gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2];
+
+            // Remove the gravity contribution with the high-pass filter.
+            linear_acceleration[0] = event.values[0] - gravity[0];
+            linear_acceleration[1] = event.values[1] - gravity[1];
+            linear_acceleration[2] = event.values[2] - gravity[2];
+
+            if (setTilt) {
+                updateSpheresBasedOnTilt(linear_acceleration);
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // Do something here if sensor accuracy changes.
+    }
+
+    private void updateSpheresBasedOnTilt(float[] tilt) {
+        for (Object object : objects) {
+            object.applyTilt(tilt, tiltSensitivity);
+        }
+    }
+
+    public void toggleTilt(boolean enable) {
+        setTilt = enable;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        sensorManager.unregisterListener(this);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+    }
+
+    public LightSource getObjectLightSource() {
+        return lightSource;
+    }
+
+    public void setObjectLightSource(LightSource lightSource) {
+        this.lightSource = lightSource;
+    }
+
 }

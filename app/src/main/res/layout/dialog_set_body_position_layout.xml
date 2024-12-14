@@ -10,7 +10,7 @@
     android:padding="16dp">
 
     <ImageView
-        android:id="@+id/help_postion_layout"
+        android:id="@+id/help_position_layout"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
