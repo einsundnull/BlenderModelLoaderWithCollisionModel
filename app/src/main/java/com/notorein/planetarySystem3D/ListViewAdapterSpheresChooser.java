@@ -10,21 +10,23 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public class ListViewAdapterSpheresChooser extends ArrayAdapter<Object> {
 
     private  MainActivity activityMain;
     private Context context;
-    private ArrayList<Object> Objects;
-    private Object selectedObject;
+    private List<ObjectBlenderModel> objects;
+    private ObjectBlenderModel selectedObject;
     private TextView sphereName;
     private ImageView findPlanet;
     private ImageView ivFollow;
 
-    public ListViewAdapterSpheresChooser(Context context, ArrayList<Object> Objects, MainActivity activityMain) {
-        super(context,0, Objects);
+    public ListViewAdapterSpheresChooser(Context context, List<ObjectBlenderModel> objects, MainActivity activityMain) {
+        super(context, 0);
+//        super(context,0, objects);
         this.context = context;
-        this.Objects = Objects;
+        this.objects = objects;
         this.activityMain = activityMain;
     }
 
@@ -35,7 +37,7 @@ public class ListViewAdapterSpheresChooser extends ArrayAdapter<Object> {
             listItemView = LayoutInflater.from(context).inflate(R.layout.list_item_body, parent, false);
         }
 
-        selectedObject = Objects.get(position);
+        selectedObject = objects.get(position);
 
         sphereName = listItemView.findViewById(R.id.tvBodyName);
         sphereName.setText(selectedObject.getName());
@@ -75,19 +77,19 @@ public class ListViewAdapterSpheresChooser extends ArrayAdapter<Object> {
             @Override
             public void onClick(View v) {
                 // Follow the selected sphere
-                UIClass.animateClick(ivFollow);
-                selectedObject = Objects.get(position);
-//                activityMain.getSphereSimulation().setAutoFollow(true);
-                activityMain.setIndexOfSelectedSphereToFollow(position);
-//                activityMain.getSphereSimulation().searchFunction(position);
-                Toast.makeText(context, "Following " + selectedObject.getName(), Toast.LENGTH_SHORT).show();
+//                UIClass.animateClick(ivFollow);
+//                selectedObject = ObjectBlenderModel.get(position);
+////                activityMain.getSphereSimulation().setAutoFollow(true);
+//                activityMain.setIndexOfSelectedSphereToFollow(position);
+////                activityMain.getSphereSimulation().searchFunction(position);
+//                Toast.makeText(context, "Following " + selectedObject.getName(), Toast.LENGTH_SHORT).show();
             }
         });
 
         return listItemView;
     }
 
-    public Object getSelectedSphere() {
+    public ObjectBlenderModel getSelectedSphere() {
         return selectedObject;
     }
 }

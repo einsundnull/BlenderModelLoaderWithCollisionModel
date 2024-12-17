@@ -50,7 +50,7 @@ public class DialogCelestialSphereChooser {
 
     }
 
-    public Object getSelectedBody() {
+    public ObjectBlenderModel getSelectedBody() {
         return bodyAdapter.getSelectedSphere();
     }
 

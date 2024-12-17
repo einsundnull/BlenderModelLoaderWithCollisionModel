@@ -1,5 +1,6 @@
 package com.notorein.planetarySystem3D;
 
+import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 
@@ -19,8 +20,8 @@ public class ObjectSphere extends Object {
     private int stacks;
     private int slices;
 
-    public ObjectSphere(int positionIndex, double posX, double posY, double posZ, double vx, double vy, double vz, double mass, int color, float size, boolean isTiltEnabled, boolean followsGravity, boolean attractsOther, boolean isAttractedByOther, boolean bouncesOff, String name) {
-        super(positionIndex, new Vector3D(posX, posY, posZ), new Vector3D(vx, vy, vz), new Vector3D(vx, vy, vz), mass, color, size, followsGravity, isTiltEnabled, attractsOther, isAttractedByOther, bouncesOff, name);
+    public ObjectSphere(Context context, int positionIndex, double posX, double posY, double posZ, double vx, double vy, double vz, double mass, int color, float size, boolean isTiltEnabled, boolean followsGravity, boolean attractsOther, boolean isAttractedByOther, boolean bouncesOff, String name, String objectFileName) {
+        super(context, positionIndex, new Vector3D(posX, posY, posZ), new Vector3D(vx, vy, vz), new Vector3D(vx, vy, vz), mass, color, size,  isTiltEnabled, followsGravity, attractsOther, isAttractedByOther, bouncesOff, name ,objectFileName);
 
         this.stacks = 50;
         this.slices = 50;
@@ -122,7 +123,6 @@ public class ObjectSphere extends Object {
         colorBuffer.position(0);
     }
 
-
     @Override
     public void draw(int program, float[] mvpMatrix, float[] viewMatrix, float[] projectionMatrix, GLES20 gl) {
         int aPositionLocation = gl.glGetAttribLocation(program, "a_Position");
@@ -151,8 +151,6 @@ public class ObjectSphere extends Object {
         gl.glDrawElements(gl.GL_TRIANGLES, getNumIndices(), gl.GL_UNSIGNED_SHORT, getIndexBuffer());
     }
 
-
-
     public FloatBuffer getVertexBuffer() {
         return vertexBuffer;
     }
@@ -172,12 +170,4 @@ public class ObjectSphere extends Object {
     public int getNumIndices() {
         return numIndices;
     }
-
-//    @Override
-//    public Vector3D support(Vector3D direction) {
-//        // Implement the support function for your specific shape
-//        // For example, if your shape is a sphere:
-//        return getPosition().add(direction.normalize().scale(getSize()));
-//    }
-
 }

@@ -1,27 +1,20 @@
 package com.notorein.planetarySystem3D;
 
-import static android.content.ContentValues.TAG;
-
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
 import android.content.Context;
-import android.content.pm.ConfigurationInfo;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.Window;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -29,9 +22,8 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
 
-import com.google.android.material.slider.Slider;
-
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private GLSurfaceView glSurfaceView;
@@ -41,26 +33,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Context context;
     private ListView dialog_celestial_body_chooser_list_view;
     private ListViewAdapterSpheresChooser spheresAdapter;
-    private ImageView menuButton, buttonRemove, buttonAdd, buttonReset, buttonSpeedUp, buttonPlay, buttonSpeedDown, button_follow_unfollow, buttonToggleTilt;
-    private float trailThickness = 5.5f;
-    private FileClassBodyValues bodyStorage;
+    private ImageView menuButton, buttonRemove, buttonAdd, buttonReset, buttonSpeedUp, buttonPlay, buttonSpeedDown, button_follow_unfollow, buttonToggleTilt, buttonUseConstantGravity;
     private DialogCelestialSphereChooser dialogCelestialSphereChooser;
-    private LinearLayout dialogCelestialBodyChooserLayout;
     private DialogCelestialSphereValues dialogCelestialSphereValues;
     private DialogPositionOnScreen dialogPositionOnScreen;
     private TextView tvPositionXOnScreen, tvPositionYOnScreen, tvPositionZOnScreen;
     private int screenWidth, screenHeight;
-    private float cameraSensitivity = 0.1f; // Reduced sensitivity
-    private float touchX, touchY;
+    private float cameraSensitivity = 1f; // Reduced sensitivity
     private float cameraAngleX = 0, cameraAngleY = 0;
     private float cameraPosX = 0, cameraPosY = 0, cameraPosZ = -10.0f;
     private float scaleFactor = 100.0f;
     private boolean isScaling;
-    private boolean pause = true;
+    public static boolean pause = true;
     private ScaleGestureDetector scaleGestureDetector;
-    private ArrayList<Object> objects;
+    private List<ObjectBlenderModel> objects;
     private int indexOfSelectedSphereToFollow = 3;
-    private Slider sliderCameraPitch, sliderCameraYaw, sliderTiltSensitivity;
+
 
     private SensorManager sensorManager;
     private Sensor accelerometer;
@@ -68,9 +56,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float[] gravity = new float[3];
     private float[] linear_acceleration = new float[3];
     private float tiltSensitivity = 1f; // Default tilt sensitivity
-    private ObjectPlane plane;
     private LightSource lightSource;
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,24 +69,72 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (actionBar != null) {
             actionBar.hide();
         }
-
+        this.context = this;
+        screenWidth = getResources().getDisplayMetrics().widthPixels;
+        screenHeight = getResources().getDisplayMetrics().heightPixels;
         // Set the layout
         setContentView(R.layout.activity_main);
 
-        // Context setup
-        this.context = this;
-
         // Initialize components
-        initSpheres();
+        initObjects();
         initDialogs();
         initViews();
         initLightSource();
+        initGLSurfaceView();
+        initOnClickListeners();
+        setCoordinatesText(0, 0, 0);
+        buttonPlay.setImageLevel(pause ? 1 : 0);
 
-        // Screen dimensions
-        screenWidth = getResources().getDisplayMetrics().widthPixels;
-        screenHeight = getResources().getDisplayMetrics().heightPixels;
+        spheresAdapter = new ListViewAdapterSpheresChooser(context, objects, this);
+        dialog_celestial_body_chooser_list_view.setAdapter(spheresAdapter);
 
-        // Find GLSurfaceView from layout
+        // Initialize the ScaleGestureDetector
+        setSliderAndDetector();
+    }
+
+
+    private void initLightSource() {
+        float[] lightAmbient = {0.5f, 0.5f, 0.5f, 1.0f};
+        float[] lightDiffuse = {1.0f, 1.0f, 1.0f, 1.0f};
+        float[] lightSpecular = {1.0f, 1.0f, 1.0f, 1.0f};
+        float[] lightPosition = {0.0f, 0.0f, 5.0f, 1.0f};
+        this.lightSource = new LightSource(lightAmbient, lightDiffuse, lightSpecular, lightPosition);
+    }
+
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void initGLSurfaceView() {
+        gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+
+                if (e2.getPointerCount() == 1) {
+                    // Handle single-finger scroll events for strafing and turning
+                    if (Math.abs(distanceX) > Math.abs(distanceY)) {
+                        // Horizontal movement: turn the camera left/right
+                        cameraAngleY -= (distanceX * cameraSensitivity); // Yaw
+                    } else {
+                        // Vertical movement: strafe up/down
+                        cameraAngleX += (distanceY * cameraSensitivity);
+                    }
+                }
+//                else if (e2.getPointerCount() == 2) {
+//                    if(!isScaling) {
+//                        // Handle two-finger scroll events for pitch and yaw
+//                        cameraAngleX -= (distanceY * cameraSensitivity); // Yaw
+//                        cameraAngleY -= (distanceX * cameraSensitivity); // Pitch
+//                    }
+//                }
+                return true;
+            }
+
+            @Override
+            public boolean onDoubleTap(MotionEvent e) {
+                ObjectBlenderModel.drawBoundingVolume = !ObjectBlenderModel.drawBoundingVolume;
+                return true;
+            }
+        });
+
         glSurfaceView = findViewById(R.id.glSurfaceView);
 
         // Important rendering configurations
@@ -112,23 +148,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         glSurfaceView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
 
         // Gesture detector setup
-        gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
-            @Override
-            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                // Handle scroll events
-                cameraPosX += distanceX * cameraSensitivity;
-                cameraPosY -= distanceY * cameraSensitivity;
-                return true;
-            }
-
-            @Override
-            public boolean onDoubleTap(MotionEvent e) {
-                // Handle double tap events
-                togglePause();
-                buttonPlay.setImageLevel(pause ? 1 : 0);
-                return true;
-            }
-        });
 
         // Touch event handling for GLSurfaceView
         glSurfaceView.setOnTouchListener(new View.OnTouchListener() {
@@ -139,26 +158,62 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 return true;
             }
         });
-
-        // Remaining initialization
-        initOnClickListeners();
-        setCoordinatesText(0, 0, 0);
-        buttonPlay.setImageLevel(pause ? 1 : 0);
-
-        spheresAdapter = new ListViewAdapterSpheresChooser(context, objects, this);
-        dialog_celestial_body_chooser_list_view.setAdapter(spheresAdapter);
-
-        // Initialize the ScaleGestureDetector
-        setSliderAndDetector();
     }
 
-    private void initLightSource() {
-        float[] lightAmbient = {0.5f, 0.5f, 0.5f, 1.0f};
-        float[] lightDiffuse = {1.0f, 1.0f, 1.0f, 1.0f};
-        float[] lightSpecular = {1.0f, 1.0f, 1.0f, 1.0f};
-        float[] lightPosition = {0.0f, 0.0f, 5.0f, 1.0f};
-        this.lightSource = new LightSource(lightAmbient, lightDiffuse, lightSpecular, lightPosition);
+
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void setSliderAndDetector() {
+        scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            private float previousSpanY;
+
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                float currentSpanY = detector.getCurrentSpanY();
+                float deltaY = currentSpanY - previousSpanY;
+
+                if (Math.abs(deltaY) > Math.abs(detector.getCurrentSpanX() - detector.getPreviousSpanX())) {
+                    // Vertical movement detected
+                    if (deltaY > 0) {
+                        // Both fingers moving down
+                        cameraPosY -= (deltaY * cameraSensitivity);
+                    } else {
+                        // Both fingers moving up
+                        cameraPosY += (Math.abs(deltaY) * cameraSensitivity);
+                    }
+                }
+
+                scaleFactor *= detector.getScaleFactor();
+                scaleFactor = Math.max(0.0001f, Math.min(scaleFactor, 5000.0f));
+                cameraPosZ = -10.0f * scaleFactor;
+                isScaling = true;
+
+                previousSpanY = currentSpanY;
+                return true;
+            }
+
+            @Override
+            public boolean onScaleBegin(ScaleGestureDetector detector) {
+                previousSpanY = detector.getCurrentSpanY();
+                isScaling = true;
+                return super.onScaleBegin(detector);
+            }
+
+            @Override
+            public void onScaleEnd(ScaleGestureDetector detector) {
+                isScaling = false;
+                super.onScaleEnd(detector);
+            }
+        });
+
+        // Initialize the SensorManager and accelerometer
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
     }
+
+
+
 
     private void initViews() {
         dialog_celestial_body_chooser_list_view = findViewById(R.id.dialog_celestial_body_chooser_list_view);
@@ -171,7 +226,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         buttonPlay = findViewById(R.id.button_play);
         buttonSpeedDown = findViewById(R.id.button_speed_down);
         buttonToggleTilt = findViewById(R.id.button_toggle_tilt);
-
+        buttonUseConstantGravity = findViewById(R.id.button_use_constant_gravity);
         tvPositionXOnScreen = findViewById(R.id.tv_position_x_on_screen);
         tvPositionYOnScreen = findViewById(R.id.tv_position_y_on_screen);
         tvPositionZOnScreen = findViewById(R.id.tv_position_z_on_screen);
@@ -234,14 +289,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             toggleTilt(isTiltEnabled);
             // Update UI to reflect the current state
         });
+
+        buttonUseConstantGravity.setOnClickListener(v -> {
+            UIClass.animateClick(buttonUseConstantGravity);
+            for (ObjectBlenderModel object : objects) {
+                object.toggleConstantGravity();
+            }
+        });
     }
 
-    public ArrayList<Object> initSpheres() {
+    public List<ObjectBlenderModel> initObjects() {
         objects = new ArrayList<>();
-        objects.add(new ObjectSphere(0, ObjectSphereConfig.Sun.X, ObjectSphereConfig.Sun.Y, ObjectSphereConfig.Sun.Z, ObjectSphereConfig.Sun.VX, ObjectSphereConfig.Sun.VY, ObjectSphereConfig.Sun.VZ, ObjectSphereConfig.Sun.MASS, ObjectSphereConfig.Sun.COLOR, ObjectSphereConfig.Sun.SIZE, ObjectSphereConfig.Sun.IS_TILT_ENABLED, ObjectSphereConfig.Sun.FOLLOWS_GRAVITY, ObjectSphereConfig.Sun.ATTRACTS_OTHER, ObjectSphereConfig.Sun.IS_ATTRACTED_BY_OTHER, ObjectSphereConfig.Sun.BOUNCES_OFF, ObjectSphereConfig.Sun.NAME));
-        objects.add(new ObjectSphere(1, ObjectSphereConfig.Mercury.X, ObjectSphereConfig.Mercury.Y, ObjectSphereConfig.Mercury.Z, ObjectSphereConfig.Mercury.VX, ObjectSphereConfig.Mercury.VY, ObjectSphereConfig.Mercury.VZ, ObjectSphereConfig.Mercury.MASS, ObjectSphereConfig.Mercury.COLOR, ObjectSphereConfig.Mercury.SIZE, ObjectSphereConfig.Mercury.IS_TILT_ENABLED, ObjectSphereConfig.Mercury.FOLLOWS_GRAVITY, ObjectSphereConfig.Mercury.ATTRACTS_OTHER, ObjectSphereConfig.Mercury.IS_ATTRACTED_BY_OTHER, ObjectSphereConfig.Mercury.BOUNCES_OFF, ObjectSphereConfig.Mercury.NAME));
+        objects.add(new ObjectBlenderModel(context, 1, new Vector3D(0, -400, 300), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), 1000, Color.BLUE, 100, true, false, true, true, true, "Plane", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(0, 0, 300), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectSphereConfig.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-300, 0, 300), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectSphereConfig.Sun.MASS, Color.MAGENTA, 100, false, false, true, true, true, "CHECK", "cyl"));
+
         return objects;
     }
+
 
     private void initDialogs() {
         dialogCelestialSphereChooser = new DialogCelestialSphereChooser(context, this);
@@ -267,74 +332,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         findViewById(R.id.button_speed_down).setVisibility(visibility);
     }
 
-    @SuppressLint("ClickableViewAccessibility")
-    private void setSliderAndDetector() {
-        scaleGestureDetector = new ScaleGestureDetector(this, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
-            @Override
-            public boolean onScale(ScaleGestureDetector detector) {
-                scaleFactor *= detector.getScaleFactor();
-                scaleFactor = Math.max(0.0001f, Math.min(scaleFactor, 5000.0f));
-                cameraPosZ = -10.0f * scaleFactor;
-                isScaling = true;
-                return true;
-            }
-
-            @Override
-            public boolean onScaleBegin(ScaleGestureDetector detector) {
-                isScaling = true;
-                return super.onScaleBegin(detector);
-            }
-
-            @Override
-            public void onScaleEnd(ScaleGestureDetector detector) {
-                isScaling = false;
-                super.onScaleEnd(detector);
-            }
-        });
-
-        // Initialize the Slider for pitch and set the listener
-        sliderCameraPitch = findViewById(R.id.slider_camera_pitch);
-        sliderCameraPitch.setValueFrom(0);
-        sliderCameraPitch.setValueTo(360);
-        sliderCameraPitch.setValue(180); // Set the initial value to the middle
-
-        // Initialize the Slider for yaw and set the listener
-        sliderCameraYaw = findViewById(R.id.seekBar_camera_yaw);
-        sliderCameraYaw.setValueFrom(0);
-        sliderCameraYaw.setValueTo(360);
-        sliderCameraYaw.setValue(180); // Set the initial value to the middle
-
-        // Initialize the Slider for tilt sensitivity and set the listener
-        sliderTiltSensitivity = findViewById(R.id.slider_tilt_sensitivity);
-        sliderTiltSensitivity.setValueFrom(0.01f);
-        sliderTiltSensitivity.setValueTo(1.0f);
-        sliderTiltSensitivity.setValue(tiltSensitivity / 9); // Set the initial value
-
-        sliderCameraPitch.addOnChangeListener((slider, value, fromUser) -> {
-            if (fromUser) {
-                shadowMapRenderer.setCameraPitch(value);
-            }
-        });
-
-        // Adjust camera yaw
-        sliderCameraYaw.addOnChangeListener((slider, value, fromUser) -> {
-            if (fromUser) {
-                shadowMapRenderer.setCameraYaw(value);
-            }
-        });
-
-        // Adjust tilt sensitivity
-        sliderTiltSensitivity.addOnChangeListener((slider, value, fromUser) -> {
-            if (fromUser) {
-                tiltSensitivity = value; // Update tilt sensitivity
-            }
-        });
-
-        // Initialize the SensorManager and accelerometer
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-    }
 
     public DialogCelestialSphereValues getDialogCelestialSphereValues() {
         return dialogCelestialSphereValues;
@@ -421,7 +418,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return pause;
     }
 
-    public ArrayList<Object> getSpheres() {
+    public List<ObjectBlenderModel> getSpheres() {
         return objects;
     }
 
@@ -475,7 +472,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void updateSpheresBasedOnTilt(float[] tilt) {
-        for (Object object : objects) {
+        for (ObjectBlenderModel object : objects) {
             object.applyTilt(tilt, tiltSensitivity);
         }
     }

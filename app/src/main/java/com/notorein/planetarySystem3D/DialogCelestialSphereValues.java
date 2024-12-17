@@ -19,7 +19,7 @@ public class DialogCelestialSphereValues {
     private final Context context;
     //    private List<Body> celestialBodies;
     private double gravityStrength;
-    public Object selectedObjectSphere;
+    public ObjectBlenderModel selectedObjectSphere;
 
     private AlertDialog menuDialog;
     private AlertDialog addBodyDialog;
@@ -147,7 +147,7 @@ public class DialogCelestialSphereValues {
         setGravityStrengthDialog = builder.create();
     }
 
-    public void initSphereValueMenu(Object selectedObjectSphere) {
+    public void initSphereValueMenu(ObjectBlenderModel selectedObjectSphere) {
         if (this.selectedObjectSphere == null) {
 //            Toast.makeText(context, "No celestial body selected", Toast.LENGTH_SHORT).show();
             return;
@@ -253,11 +253,11 @@ public class DialogCelestialSphereValues {
         colorPickerDialog.show(((MainActivity) context).getSupportFragmentManager(), "colorPicker");
     }
 
-    public void setSelectedSphere(Object selectedObjectSphere) {
+    public void setSelectedSphere(ObjectBlenderModel selectedObjectSphere) {
         this.selectedObjectSphere = selectedObjectSphere;
     }
 
-    public Object getSelectedSphere() {
+    public ObjectBlenderModel getSelectedSphere() {
         return this.selectedObjectSphere;
     }
 

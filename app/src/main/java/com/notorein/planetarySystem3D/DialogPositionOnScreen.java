@@ -20,7 +20,7 @@ public class DialogPositionOnScreen {
     private final Context context;
     private MainActivity activityMain;
 
-    private Object selectedBody;
+    private ObjectBlenderModel selectedBody;
 
     private ImageView help_position_layout;
     private TextView tvPlanetName;
@@ -153,11 +153,11 @@ public class DialogPositionOnScreen {
         }
     }
 
-    public Object getSelectedBody() {
+    public ObjectBlenderModel getSelectedBody() {
         return selectedBody;
     }
 
-    public void setSelectedBody(Object selectedBody) {
+    public void setSelectedBody(ObjectBlenderModel selectedBody) {
         this.selectedBody = selectedBody;
     }
 

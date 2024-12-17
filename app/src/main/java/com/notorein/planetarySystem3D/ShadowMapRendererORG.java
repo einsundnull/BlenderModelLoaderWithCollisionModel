@@ -9,29 +9,78 @@ import android.opengl.Matrix;
 import android.util.Log;
 import android.util.Pair;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.nio.FloatBuffer;
-import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-public class ShadowMapRenderer implements GLSurfaceView.Renderer {
+public class ShadowMapRendererORG implements GLSurfaceView.Renderer {
+    private  final String VERTEX_SHADER_CODE =
+            "#version 300 es\n" +
+                    "precision highp float;\n" +
+                    "layout(location = 0) in vec3 a_Position;\n" +
+                    "layout(location = 1) in vec3 a_Normal;\n" +
+                    "layout(location = 2) in vec4 a_Color;\n" +
+                    "uniform mat4 u_MVPMatrix;\n" +
+                    "uniform mat4 u_ModelMatrix;\n" +
+                    "uniform vec3 u_LightPos;\n" +
+                    "uniform mat4 u_LightSpaceMatrix;\n" +
+                    "out vec3 v_Normal;\n" +
+                    "out vec3 v_LightDir;\n" +
+                    "out vec3 v_FragPos;\n" +
+                    "out vec4 v_Color;\n" +
+                    "out vec4 v_ShadowSpacePos;\n" +
+                    "void main() {\n" +
+                    "    vec4 worldPos = u_ModelMatrix * vec4(a_Position, 1.0);\n" +
+                    "    gl_Position = u_MVPMatrix * vec4(a_Position, 1.0);\n" +
+                    "    v_Normal = mat3(u_ModelMatrix) * a_Normal;\n" +
+                    "    v_LightDir = u_LightPos - worldPos.xyz;\n" +
+                    "    v_FragPos = worldPos.xyz;\n" +
+                    "    v_Color = a_Color;\n" +
+                    "    v_ShadowSpacePos = u_LightSpaceMatrix * vec4(v_FragPos, 1.0);\n" +
+                    "}\n";
 
+    private  final String SHADOW_FRAGMENT_SHADER_CODE =
+            "#version 300 es\n" +
+                    "precision highp float;\n" +
+                    "in vec4 v_ShadowSpacePos;\n" + // Use the output variable from the vertex shaders
+                    "uniform sampler2D u_ShadowMap;\n" +
+                    "out float fragColor;\n" +
+                    "void main() {\n" +
+                    "    vec4 shadowSpacePos = v_ShadowSpacePos;\n" + // Use a temporary variable
+                    "    shadowSpacePos.z += 0.0005; // Add depth bias\n" +
+                    "    float shadow = texture(u_ShadowMap, shadowSpacePos.xy).r;\n" +
+                    "    fragColor = shadow;\n" +
+                    "}\n";
+
+    private  final String SCENE_FRAGMENT_SHADER_CODE =
+            "#version 300 es\n" +
+                    "precision highp float;\n" +
+                    "in vec3 v_LightDir;\n" +
+                    "in vec3 v_FragPos;\n" +
+                    "in vec3 v_Normal;\n" +
+                    "in vec4 v_Color;\n" +
+                    "in vec4 v_ShadowSpacePos;\n" + // Use the output variable from the vertex shaders
+                    "uniform vec3 u_LightPos;\n" +
+                    "uniform sampler2D u_ShadowMap;\n" +
+                    "out vec4 fragColor;\n" +
+                    "void main() {\n" +
+                    "    vec3 lightDir = normalize(u_LightPos - v_FragPos);\n" +
+                    "    float diff = max(dot(v_Normal, lightDir), 0.0);\n" +
+                    "    vec4 color = vec4(diff, diff, diff, 1.0) * v_Color;\n" +
+                    "    vec4 shadowSpacePos = v_ShadowSpacePos;\n" + // Use a temporary variable
+                    "    shadowSpacePos.z += 0.0005; // Add depth bias\n" +
+                    "    float shadow = texture(u_ShadowMap, shadowSpacePos.xy).r;\n" +
+                    "    fragColor = color * shadow;\n" +
+                    "}\n";
 
     private final int height;
     private final int width;
+
     private int shadowMapFBO;
     private int shadowMapTexture;
     private int shadowProgram, sceneProgram;
-
 
     private final float[] lightProjectionMatrix = new float[16];
     private final float[] lightViewMatrix = new float[16];
@@ -42,7 +91,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     private final float[] projectionMatrix = new float[16];
     private final float[] mvpMatrix = new float[16];
 
-    private final List<ObjectBlenderModel> objects;
+    private final ArrayList<ObjectBlenderModel> objects;
     private final MainActivity activityMain;
     private final Context context;
     private volatile float cameraPosX, cameraPosY, cameraPosZ, scaleFactor, cameraAngleX, cameraAngleY;
@@ -52,24 +101,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     private float cameraYaw, cameraPitch;
     private float eyeX, eyeY, eyeZ, lookX, lookY, lookZ, upX, upY, upZ;
 
-    public static String loadShader(Context context, String shaderFileName) {
-        StringBuilder shaderSource = new StringBuilder();
-        try {
-            InputStream inputStream = context.getAssets().open(shaderFileName);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                shaderSource.append(line).append("\n");
-            }
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return shaderSource.toString();
-    }
-
-
-    public ShadowMapRenderer(Context context, MainActivity activityMain, List<ObjectBlenderModel> objects, int screenWidth, int screenHeight) {
+    public ShadowMapRendererORG(Context context, MainActivity activityMain, ArrayList<ObjectBlenderModel> objects, int screenWidth, int screenHeight) {
         this.objects = objects;
         this.context = context;
         this.activityMain = activityMain;
@@ -81,24 +113,20 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+
         GLES20.glViewport(0, 0, width, height);
         GLES20.glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
         initShadowMap();
-
-        String vertexShaderCode = loadShader(context, "shaders/vertex_shader.glsl");
-        String shadowFragmentShaderCode = loadShader(context, "shaders/shadow_fragment_shader.glsl");
-        String sceneFragmentShaderCode = loadShader(context, "shaders/scene_fragment_shader.glsl");
-
-        shadowProgram = loadShaderProgram(vertexShaderCode, shadowFragmentShaderCode);
-        sceneProgram = loadShaderProgram(vertexShaderCode, sceneFragmentShaderCode);
+        shadowProgram = loadShaderProgram(VERTEX_SHADER_CODE, SHADOW_FRAGMENT_SHADER_CODE);
+        sceneProgram = loadShaderProgram(VERTEX_SHADER_CODE, SCENE_FRAGMENT_SHADER_CODE);
 
         // Enable lighting and set light properties
-        activityMain.getObjectLightSource().enableLight(gl);
+        lightSource.enableLight(gl);
 
         // Set material properties
-        activityMain.getObjectLightSource().setMaterialProperties(gl);
+        lightSource.setMaterialProperties(gl);
     }
 
     @Override
@@ -117,6 +145,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         Matrix.rotateM(viewMatrix, 0, cameraAngleX, 1.0f, 0.0f, 0.0f);
         Matrix.rotateM(viewMatrix, 0, cameraAngleY, 0.0f, 1.0f, 0.0f);
     }
+
 
 
     @Override
@@ -213,22 +242,22 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     }
 
 
+
     private void drawScene(int program, float[] mvpMatrix, float[] viewMatrix, float[] projectionMatrix) {
         // Bind attributes, uniforms, and draw geometry
+        int aPositionLocation = GLES20.glGetAttribLocation(program, "a_Position");
+        int aNormalLocation = GLES20.glGetAttribLocation(program, "a_Normal");
+        int aColorLocation = GLES20.glGetAttribLocation(program, "a_Color");
+        int uMVPMatrixLocation = GLES20.glGetUniformLocation(program, "u_MVPMatrix");
+        int uModelMatrixLocation = GLES20.glGetUniformLocation(program, "u_ModelMatrix");
+
+        GLES20.glEnableVertexAttribArray(aPositionLocation);
+        GLES20.glEnableVertexAttribArray(aNormalLocation);
+        GLES20.glEnableVertexAttribArray(aColorLocation);
+
+        // Draw all objects
         synchronized (objects) {
             for (ObjectBlenderModel object : objects) {
-                int aPositionLocation = GLES20.glGetAttribLocation(program, "a_Position");
-                int aNormalLocation = GLES20.glGetAttribLocation(program, "a_Normal");
-                int aColorLocation = GLES20.glGetAttribLocation(program, "a_Color");
-                int uMVPMatrixLocation = GLES20.glGetUniformLocation(program, "u_MVPMatrix");
-                int uModelMatrixLocation = GLES20.glGetUniformLocation(program, "u_ModelMatrix");
-
-                GLES20.glEnableVertexAttribArray(aPositionLocation);
-                GLES20.glEnableVertexAttribArray(aNormalLocation);
-                GLES20.glEnableVertexAttribArray(aColorLocation);
-
-                // Draw all objects
-
                 Log.i(TAG, "Drawing object: " + object.getName());
                 object.drawObject(program, mvpMatrix, viewMatrix, projectionMatrix);
 
@@ -236,14 +265,15 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
                     Log.i(TAG, "Drawing bounding volume for object: " + object.getName());
                     object.drawBoundingVolume(program, mvpMatrix, viewMatrix, projectionMatrix);
                 }
-
-
-                GLES20.glDisableVertexAttribArray(aPositionLocation);
-                GLES20.glDisableVertexAttribArray(aNormalLocation);
-                GLES20.glDisableVertexAttribArray(aColorLocation);
             }
         }
+
+        GLES20.glDisableVertexAttribArray(aPositionLocation);
+        GLES20.glDisableVertexAttribArray(aNormalLocation);
+        GLES20.glDisableVertexAttribArray(aColorLocation);
     }
+
+
 
 
     private int loadShaderProgram(String vertexShaderCode, String fragmentShaderCode) {
@@ -279,28 +309,19 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     }
 
 
+
     private void updateObjects() {
         synchronized (objects) {
-            // Check for collisions between all pairs of objects
-            for (int i = 0; i < objects.size(); i++) {
-                for (int j = i + 1; j < objects.size(); j++) {
-                    ObjectBlenderModel object = objects.get(i);
-                    ObjectBlenderModel other = objects.get(j);
+            // Broad phase collision detection
+            List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions = broadPhaseCollisionDetection();
 
-                    // Add more detailed logging
-                    Log.d(TAG, "Checking collision between " + object.getName() + " and " + other.getName());
-                    Log.d(TAG, "Object1 Bounding Volume: " + object.boundingVolume);
-                    Log.d(TAG, "Object2 Bounding Volume: " + other.boundingVolume);
-
-                    boolean intersects = object.boundingVolume.intersects(other.boundingVolume);
-                    Log.d(TAG, "Intersection result: " + intersects);
-
-                    if (intersects) {
-                        object.applyGravity(other);
-                        if (object.detectCollision(other)) {
-                            object.handleCollision(other);
-                        }
-                    }
+            // Narrow phase collision detection and response
+            for (Pair<ObjectBlenderModel, ObjectBlenderModel> pair : potentialCollisions) {
+                ObjectBlenderModel object = pair.first;
+                ObjectBlenderModel other = pair.second;
+                object.applyGravity(other);
+                if (object.detectCollision(other)) {
+                    object.handleCollision(other);
                 }
             }
 
@@ -312,27 +333,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     }
 
 
-//    private void updateObjects() {
-//        synchronized (objects) {
-//            // Broad phase collision detection
-//            List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions = broadPhaseCollisionDetection();
-//
-//            // Narrow phase collision detection and response
-//            for (Pair<ObjectBlenderModel, ObjectBlenderModel> pair : potentialCollisions) {
-//                ObjectBlenderModel object = pair.first;
-//                ObjectBlenderModel other = pair.second;
-//                object.applyGravity(other);
-//                if (object.detectCollision(other)) {
-//                    object.handleCollision(other);
-//                }
-//            }
-//
-//            // Update positions
-//            for (ObjectBlenderModel object : objects) {
-//                object.updatePosition();
-//            }
-//        }
-//    }
+
 
 
     private List<Pair<ObjectBlenderModel, ObjectBlenderModel>> broadPhaseCollisionDetection() {

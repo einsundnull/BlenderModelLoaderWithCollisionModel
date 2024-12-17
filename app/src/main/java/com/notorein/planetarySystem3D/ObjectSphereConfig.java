@@ -16,7 +16,7 @@ public class ObjectSphereConfig {
         public static final int SIZE = 100;
         public static final double X = 0 ; // Centered horizontally
         public static final double Y = 300 ; // Centered vertically
-        public static final double Z = -800 ;
+        public static final double Z = 800 ;
         public static final double VX = 0;
         public static final double VY = 0;
         public static final double VZ = 0;
@@ -35,7 +35,7 @@ public class ObjectSphereConfig {
         public static final int SIZE = 50;
         public static final double X = 200 ; // Updated to lie on the plane
         public static final double Y = 0 ; // Updated to lie on the plane
-        public static final double Z = -800;
+        public static final double Z = 800;
         public static final double VX = 0;
         public static final double VY = 0;
         public static final double VZ = 0;
