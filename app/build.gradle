@@ -5,10 +5,10 @@ plugins {
 android {
     compileSdkVersion 34
 
-    namespace 'com.notorein.planetarySystem3D'
+    namespace 'com.notorein.threedmodeling'
 
     defaultConfig {
-        applicationId "com.notorein.planetarySystem3D"
+        applicationId "com.notorein.threedmodeling"
         minSdkVersion 27
         targetSdkVersion 34
         versionCode 1

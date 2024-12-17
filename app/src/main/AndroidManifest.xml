@@ -16,7 +16,7 @@
         android:theme="@style/Theme.Theme.PlanetarySystem3D">
 
         <!-- Main Activity -->
-        <activity android:name="com.notorein.planetarySystem3D.MainActivity"
+        <activity android:name="com.notorein.threedmodeling.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

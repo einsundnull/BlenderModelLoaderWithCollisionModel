@@ -13,5 +13,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "Planets 3D"
+rootProject.name = "3d Model Blender Collision"
 include ':app'
