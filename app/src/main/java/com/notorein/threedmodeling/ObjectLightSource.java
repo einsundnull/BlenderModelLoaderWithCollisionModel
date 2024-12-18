@@ -2,13 +2,13 @@ package com.notorein.threedmodeling;
 
 import javax.microedition.khronos.opengles.GL10;
 
-public class LightSource {
+public class ObjectLightSource {
     private float[] lightAmbient;
     private float[] lightDiffuse;
     private float[] lightSpecular;
     private float[] lightPosition;
 
-    public LightSource(float[] lightAmbient, float[] lightDiffuse, float[] lightSpecular, float[] lightPosition) {
+    public ObjectLightSource(float[] lightAmbient, float[] lightDiffuse, float[] lightSpecular, float[] lightPosition) {
         this.lightAmbient = lightAmbient;
         this.lightDiffuse = lightDiffuse;
         this.lightSpecular = lightSpecular;

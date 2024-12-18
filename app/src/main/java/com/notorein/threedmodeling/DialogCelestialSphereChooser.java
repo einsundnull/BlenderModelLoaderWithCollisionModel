@@ -8,7 +8,7 @@ import android.widget.RelativeLayout;
 
 public class DialogCelestialSphereChooser {
 
-    private final ListViewAdapterSpheresChooser bodyAdapter;
+    private final DialogListViewAdapterSpheresChooser bodyAdapter;
     private Context context;
     private MainActivity activityMain;
     private ListView view;
@@ -34,7 +34,7 @@ public class DialogCelestialSphereChooser {
         });
 
 
-        bodyAdapter = new ListViewAdapterSpheresChooser(this.context, this.activityMain.getSpheres(), this.activityMain);
+        bodyAdapter = new DialogListViewAdapterSpheresChooser(this.context, this.activityMain.getSpheres(), this.activityMain);
         view.setAdapter(bodyAdapter);
     }
 

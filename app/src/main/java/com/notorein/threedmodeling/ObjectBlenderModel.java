@@ -2,8 +2,8 @@ package com.notorein.threedmodeling;
 
 import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
 
-import static com.notorein.threedmodeling.ObjectBlenderModelLoader.createFloatBuffer;
-import static com.notorein.threedmodeling.ObjectBlenderModelLoader.createShortBuffer;
+import static com.notorein.threedmodeling.ObjectLoaderBlenderModel.createFloatBuffer;
+import static com.notorein.threedmodeling.ObjectLoaderBlenderModel.createShortBuffer;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -19,8 +19,8 @@ import java.util.List;
 public class ObjectBlenderModel {
     private final Context context;
     private final String objFileName;
-    private final ObjectTriangleLoader objectTriangleLoader;
-    private final ObjectBlenderModelLoader objectLoader;
+    private final ObjectLoaderTriangle objectLoaderTriangle;
+    private final ObjectLoaderBlenderModel objectLoader;
     private String name;
     private FloatBuffer vertexBuffer;
     private FloatBuffer colorBuffer;
@@ -90,9 +90,9 @@ public class ObjectBlenderModel {
         this.bouncesOff = bouncesOff;
         this.name = name;
         this.objFileName = objFileName;
-        objectTriangleLoader = new ObjectTriangleLoader();
-        objectLoader = new ObjectBlenderModelLoader();
-        objectLoader.loadObjModel(context, objFileName, color, objectTriangleLoader);
+        objectLoaderTriangle = new ObjectLoaderTriangle();
+        objectLoader = new ObjectLoaderBlenderModel();
+        objectLoader.loadObjModel(context, objFileName, color, objectLoaderTriangle);
         objectTriangles = objectLoader.getObjectTriangles();
         numIndices = objectLoader.getNumIndices();
         vertexBuffer = objectLoader.getVertexBuffer();
@@ -235,7 +235,7 @@ public class ObjectBlenderModel {
     public boolean detectCollision(ObjectBlenderModel other) {
         boolean collision = this.boundingVolume.intersects(other.boundingVolume);
 //        Log.i(TAG, "detectCollision: " + getName() + " with " + other.getName() + " collision: " + collision);
-        color = collision ? Color.GREEN : Color.RED;
+        color = collision ? Color.BLUE : Color.GREEN;
         return collision;
     }
 

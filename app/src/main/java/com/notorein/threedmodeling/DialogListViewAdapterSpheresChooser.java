@@ -11,7 +11,7 @@ import android.widget.Toast;
 
 import java.util.List;
 
-public class ListViewAdapterSpheresChooser extends ArrayAdapter<Object> {
+public class DialogListViewAdapterSpheresChooser extends ArrayAdapter<Object> {
 
     private  MainActivity activityMain;
     private Context context;
@@ -21,7 +21,7 @@ public class ListViewAdapterSpheresChooser extends ArrayAdapter<Object> {
     private ImageView findPlanet;
     private ImageView ivFollow;
 
-    public ListViewAdapterSpheresChooser(Context context, List<ObjectBlenderModel> objects, MainActivity activityMain) {
+    public DialogListViewAdapterSpheresChooser(Context context, List<ObjectBlenderModel> objects, MainActivity activityMain) {
         super(context, 0);
 //        super(context,0, objects);
         this.context = context;

@@ -8,7 +8,7 @@ import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 import java.util.List;
 
-public class ObjectBlenderModelLoader {
+public class ObjectLoaderBlenderModel {
 
 
     private List<ObjectModelTriangle> collisionModelTriangles;
@@ -18,10 +18,10 @@ public class ObjectBlenderModelLoader {
     private ShortBuffer indexBuffer;
     private int numIndices;
 
-    public void loadObjModel(Context context, String objFileName, int color, ObjectTriangleLoader objectTriangleLoader) {
-        collisionModelTriangles = objectTriangleLoader.loadTrianglesFromOBJ(context, objFileName);
-        List<Vector3D> verticesObjModel = objectTriangleLoader.getVertices();
-        List<Vector3D> normalsObjModel = objectTriangleLoader.getNormals();
+    public void loadObjModel(Context context, String objFileName, int color, ObjectLoaderTriangle objectLoaderTriangle) {
+        collisionModelTriangles = objectLoaderTriangle.loadTrianglesFromOBJ(context, objFileName);
+        List<Vector3D> verticesObjModel = objectLoaderTriangle.getVertices();
+        List<Vector3D> normalsObjModel = objectLoaderTriangle.getNormals();
 
 
         float[] vertexArray = new float[verticesObjModel.size() * 3];

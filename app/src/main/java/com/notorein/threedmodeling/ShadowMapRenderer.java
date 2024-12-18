@@ -40,7 +40,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     private final Context context;
     private volatile float cameraPosX, cameraPosY, cameraPosZ, scaleFactor, cameraAngleX, cameraAngleY;
 
-    private LightSource lightSource;
+    private ObjectLightSource objectLightSource;
 
     private float cameraYaw, cameraPitch;
     private float eyeX, eyeY, eyeZ, lookX, lookY, lookZ, upX, upY, upZ;
@@ -68,7 +68,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         this.activityMain = activityMain;
         this.width = screenWidth;
         this.height = screenHeight;
-        this.lightSource = activityMain.getObjectLightSource();
+        this.objectLightSource = activityMain.getObjectLightSource();
     }
 
     @Override
@@ -133,7 +133,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
             Matrix.rotateM(viewMatrix, 0, cameraAngleY, 0.0f, 1.0f, 0.0f);
 
             // Enable the light source
-            lightSource.enableLight(gl);
+            objectLightSource.enableLight(gl);
 
             if (!activityMain.isPause()) {
                 updateObjects();
@@ -145,37 +145,18 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     }
 
 
-    private void updateObjects() {
-        synchronized (objects) {
-            // Broad phase collision detection
-            for (int i = 0; i < objects.size(); i++) {
-                ObjectBlenderModel object = objects.get(i);
-                for (int j = i + 1; j < objects.size(); j++) {
-                    ObjectBlenderModel other = objects.get(j);
-                    object.applyGravity(other);
-                    if (object.boundingVolume.intersects(other.boundingVolume)) {
-                        object.handleCollision(other);
-
-                    }
-                }
-            }
-            // Update positions for all objects
-            for (ObjectBlenderModel object : objects) {
-                object.updatePosition();
-            }
-        }
-    }
 //    private void updateObjects() {
 //        synchronized (objects) {
 //            // Broad phase collision detection
-//            List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions = broadPhaseCollisionDetection();
-//            // Narrow phase collision detection and response
-//            for (Pair<ObjectBlenderModel, ObjectBlenderModel> pair : potentialCollisions) {
-//                ObjectBlenderModel object = pair.first;
-//                ObjectBlenderModel other = pair.second;
-//                object.applyGravity(other);
-//                if (object.detectCollision(other)) {
-//                    object.handleCollision(other);
+//            for (int i = 0; i < objects.size(); i++) {
+//                ObjectBlenderModel object = objects.get(i);
+//                for (int j = i + 1; j < objects.size(); j++) {
+//                    ObjectBlenderModel other = objects.get(j);
+//                    object.applyGravity(other);
+//                    if (object.boundingVolume.intersects(other.boundingVolume)) {
+//                        object.handleCollision(other);
+//
+//                    }
 //                }
 //            }
 //            // Update positions for all objects
@@ -184,6 +165,25 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
 //            }
 //        }
 //    }
+    private void updateObjects() {
+        synchronized (objects) {
+            // Broad phase collision detection
+            List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions = broadPhaseCollisionDetection();
+            // Narrow phase collision detection and response
+            for (Pair<ObjectBlenderModel, ObjectBlenderModel> pair : potentialCollisions) {
+                ObjectBlenderModel object = pair.first;
+                ObjectBlenderModel other = pair.second;
+                object.applyGravity(other);
+                if (object.detectCollision(other)) {
+                    object.handleCollision(other);
+                }
+            }
+            // Update positions for all objects
+            for (ObjectBlenderModel object : objects) {
+                object.updatePosition();
+            }
+        }
+    }
 
     private List<Pair<ObjectBlenderModel, ObjectBlenderModel>> broadPhaseCollisionDetection() {
         List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions = new ArrayList<>();
@@ -192,8 +192,8 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
             for (int j = i + 1; j < objects.size(); j++) {
                 ObjectBlenderModel other = objects.get(j);
                 if (object.boundingVolume.intersects(other.boundingVolume)) {
-//                    potentialCollisions.add(new Pair<>(object, other));
-                    object.applyGravity(other);
+                    potentialCollisions.add(new Pair<>(object, other));
+//                    object.applyGravity(other);
                 }
             }
         }

@@ -11,9 +11,9 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ObjectTriangleLoader {
+public class ObjectLoaderTriangle {
 
-    private static final String TAG = "ObjectTriangleLoader";
+    private static final String TAG = "ObjectLoaderTriangle";
     private List<Vector3D> vertices = new ArrayList<>();
     private List<Vector3D> normals = new ArrayList<>();
     private List<Vector2D> texCoords = new ArrayList<>();

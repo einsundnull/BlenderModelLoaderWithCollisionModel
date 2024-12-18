@@ -2,7 +2,7 @@ package com.notorein.threedmodeling;
 
 import android.graphics.Color;
 
-public class ObjectSphereConfig {
+public class ObjectInitData {
     public static final class Sun {
         public static final int SIZE = 100;
         public static final double X = 0 ; // Centered horizontally

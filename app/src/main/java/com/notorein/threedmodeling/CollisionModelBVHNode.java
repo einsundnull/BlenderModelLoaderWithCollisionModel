@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CollisionModelBVHNode {
-    private final int TRIANGLE_THRESHOLD = 100; // Define the threshold
+    private final int TRIANGLE_THRESHOLD = 10; // Define the threshold
     CollisionModelBoundingVolume boundingVolume;
     private List<CollisionModelBVHNode> children;
     private List<ObjectModelTriangle> collisionModelTriangles;
