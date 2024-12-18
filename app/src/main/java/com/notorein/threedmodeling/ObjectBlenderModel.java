@@ -2,14 +2,15 @@ package com.notorein.threedmodeling;
 
 import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
 
+import static com.notorein.threedmodeling.ObjectBlenderModelLoader.createFloatBuffer;
+import static com.notorein.threedmodeling.ObjectBlenderModelLoader.createShortBuffer;
+
 import android.content.Context;
 import android.graphics.Color;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.util.Log;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
@@ -18,7 +19,8 @@ import java.util.List;
 public class ObjectBlenderModel {
     private final Context context;
     private final String objFileName;
-    private final CollisionModelModelLoader collisionModelModelLoader;
+    private final ObjectTriangleLoader objectTriangleLoader;
+    private final ObjectBlenderModelLoader objectLoader;
     private String name;
     private FloatBuffer vertexBuffer;
     private FloatBuffer colorBuffer;
@@ -68,7 +70,7 @@ public class ObjectBlenderModel {
             0.0f, 1.0f, 0.0f, 1.0f,
             0.0f, 1.0f, 0.0f, 1.0f
     };
-    private List<CollisionModelTriangle> collisionModelTriangles;
+    private List<ObjectModelTriangle> objectTriangles;
 
     public ObjectBlenderModel(Context context, int positionIndex, Vector3D position, Vector3D velocity, Vector3D velocityTilt, double mass, int color, double size, boolean isTiltEnabled, boolean followGravity, boolean attractsOther, boolean isAttractedByOther, boolean bouncesOff, String name, String objFileName) {
         this.context = context;
@@ -88,86 +90,26 @@ public class ObjectBlenderModel {
         this.bouncesOff = bouncesOff;
         this.name = name;
         this.objFileName = objFileName;
-        collisionModelModelLoader = new CollisionModelModelLoader();
-        loadObjModel(context, objFileName);
+        objectTriangleLoader = new ObjectTriangleLoader();
+        objectLoader = new ObjectBlenderModelLoader();
+        objectLoader.loadObjModel(context, objFileName, color, objectTriangleLoader);
+        objectTriangles = objectLoader.getObjectTriangles();
+        numIndices = objectLoader.getNumIndices();
+        vertexBuffer = objectLoader.getVertexBuffer();
+        normalBuffer = objectLoader.getNormalBuffer();
+        indexBuffer = objectLoader.getIndexBuffer();
+        colorBuffer = objectLoader.getColorBuffer();
+
         updateBoundingVolume();
     }
 
-    public int getPositionIndex() {
-        return positionIndex;
-    }
-
-    private void loadObjModel(Context context, String objFileName) {
-        collisionModelTriangles = collisionModelModelLoader.loadTrianglesFromOBJ(context, objFileName);
-        List<Vector3D> verticesObjModel = collisionModelModelLoader.getVertices();
-        List<Vector3D> normalsObjModel = collisionModelModelLoader.getNormals();
 
 
-        float[] vertexArray = new float[verticesObjModel.size() * 3];
-        float[] normalArray = new float[normalsObjModel.size() * 3];
-        short[] indexArray = new short[collisionModelTriangles.size() * 3];
-
-        for (int i = 0; i < verticesObjModel.size(); i++) {
-            Vector3D vertex = verticesObjModel.get(i);
-            vertexArray[i * 3] = (float) vertex.x;
-            vertexArray[i * 3 + 1] = (float) vertex.y;
-            vertexArray[i * 3 + 2] = (float) vertex.z;
-        }
-
-        for (int i = 0; i < normalsObjModel.size(); i++) {
-            Vector3D normal = normalsObjModel.get(i);
-            normalArray[i * 3] = (float) normal.x;
-            normalArray[i * 3 + 1] = (float) normal.y;
-            normalArray[i * 3 + 2] = (float) normal.z;
-        }
-
-        for (int i = 0; i < collisionModelTriangles.size(); i++) {
-            CollisionModelTriangle collisionModelTriangle = collisionModelTriangles.get(i);
-            indexArray[i * 3] = (short) verticesObjModel.indexOf(collisionModelTriangle.getVertices()[0]);
-            indexArray[i * 3 + 1] = (short) verticesObjModel.indexOf(collisionModelTriangle.getVertices()[1]);
-            indexArray[i * 3 + 2] = (short) verticesObjModel.indexOf(collisionModelTriangle.getVertices()[2]);
-        }
-
-        numIndices = indexArray.length;
-
-        vertexBuffer = createFloatBuffer(vertexArray);
-        normalBuffer = createFloatBuffer(normalArray);
-        indexBuffer = createShortBuffer(indexArray);
-
-        float r = ((color >> 16) & 0xFF) / 255.0f;
-        float g = ((color >> 8) & 0xFF) / 255.0f;
-        float b = (color & 0xFF) / 255.0f;
-        float a = ((color >> 24) & 0xFF) / 255.0f;
-
-        float[] colors = new float[vertexArray.length / 3 * 4];
-        for (int i = 0; i < colors.length; i += 4) {
-            colors[i] = r;
-            colors[i + 1] = g;
-            colors[i + 2] = b;
-            colors[i + 3] = a;
-        }
 
 
-        colorBuffer = createFloatBuffer(colors);
-    }
 
-    private FloatBuffer createFloatBuffer(float[] array) {
-        ByteBuffer bb = ByteBuffer.allocateDirect(array.length * 4);
-        bb.order(ByteOrder.nativeOrder());
-        FloatBuffer buffer = bb.asFloatBuffer();
-        buffer.put(array);
-        buffer.position(0);
-        return buffer;
-    }
 
-    private ShortBuffer createShortBuffer(short[] array) {
-        ByteBuffer bb = ByteBuffer.allocateDirect(array.length * 2);
-        bb.order(ByteOrder.nativeOrder());
-        ShortBuffer buffer = bb.asShortBuffer();
-        buffer.put(array);
-        buffer.position(0);
-        return buffer;
-    }
+
 
     private void updateBoundingVolume() {
         Vector3D min = new Vector3D(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
@@ -187,64 +129,24 @@ public class ObjectBlenderModel {
         }
 
         this.boundingVolume = new CollisionModelAABB(min, max);
-        Log.i(TAG, "updateBoundingVolume: " + getName() + " Bounding Volume: " + boundingVolume);
+
+        // Calculate the center of the bounding volume
+        Vector3D center = new Vector3D(
+                (min.x + max.x) / 2,
+                (min.y + max.y) / 2,
+                (min.z + max.z) / 2
+        );
+
+        // Log the center coordinates
+        Log.i(TAG, "updateBoundingVolume: " + getName() + " Bounding Volume Center: (" + center.x + ", " + center.y + ", " + center.z + ")");
+//        Log.i(TAG, "updateBoundingVolume: " + getName() + " Bounding Volume: " + boundingVolume);
     }
 
-    public void drawTriangles(int program) {
-        // Bind attributes, uniforms, and draw geometry
-        int aPositionLocation = GLES20.glGetAttribLocation(program, "a_Position");
-        int aNormalLocation = GLES20.glGetAttribLocation(program, "a_Normal");
-        int aColorLocation = GLES20.glGetAttribLocation(program, "a_Color");
 
-        GLES20.glEnableVertexAttribArray(aPositionLocation);
-        GLES20.glEnableVertexAttribArray(aNormalLocation);
-        GLES20.glEnableVertexAttribArray(aColorLocation);
 
-        // Draw all triangles
-        for (CollisionModelTriangle triangle : collisionModelTriangles) {
-            drawTriangle(program, triangle);
-        }
-
-        GLES20.glDisableVertexAttribArray(aPositionLocation);
-        GLES20.glDisableVertexAttribArray(aNormalLocation);
-        GLES20.glDisableVertexAttribArray(aColorLocation);
+    public int getPositionIndex() {
+        return positionIndex;
     }
-    private void drawTriangle(int program, CollisionModelTriangle triangle) {
-        Vector3D[] vertices = triangle.getVertices();
-        Vector3D[] normals = triangle.getNormals();
-        Vector2D[] texCoords = triangle.getTexCoords();
-
-        // Create buffers for the vertices, normals, and colors
-        FloatBuffer vertexBuffer = ByteBuffer.allocateDirect(vertices.length * 3 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-        FloatBuffer normalBuffer = ByteBuffer.allocateDirect(normals.length * 3 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-//        FloatBuffer colorBuffer = ByteBuffer.allocateDirect(vertices.length * 4 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
-
-        for (int i = 0; i < vertices.length; i++) {
-            vertexBuffer.put((float) vertices[i].x);
-            vertexBuffer.put((float) vertices[i].y);
-            vertexBuffer.put((float) vertices[i].z);
-
-            normalBuffer.put((float) normals[i].x);
-            normalBuffer.put((float) normals[i].y);
-            normalBuffer.put((float) normals[i].z);
-
-//            colorBuffer.put(1.0f); // Red
-//            colorBuffer.put(0.0f); // Green
-//            colorBuffer.put(0.0f); // Blue
-//            colorBuffer.put(1.0f); // Alpha
-        }
-
-        vertexBuffer.position(0);
-        normalBuffer.position(0);
-        colorBuffer.position(0);
-
-        GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(program, "a_Position"), 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
-        GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(program, "a_Normal"), 3, GLES20.GL_FLOAT, false, 0, normalBuffer);
-        GLES20.glVertexAttribPointer(GLES20.glGetAttribLocation(program, "a_Color"), 4, GLES20.GL_FLOAT, false, 0, colorBuffer);
-
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertices.length);
-    }
-
 
     private Vector3D getVertex(int index) {
         int vertexIndex = index * 3;
@@ -264,7 +166,7 @@ public class ObjectBlenderModel {
         Matrix.scaleM(modelMatrix, 0, (float) size, (float) size, (float) size);
 
         GLES20.glVertexAttribPointer(aPositionLocation, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
-        GLES20.glVertexAttribPointer(aNormalLocation, 3, GLES20.GL_FLOAT, false, 0, normalBuffer);
+        GLES20.glVertexAttribPointer(aNormalLocation, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
         GLES20.glVertexAttribPointer(aColorLocation, 4, GLES20.GL_FLOAT, false, 0, colorBuffer);
 
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
@@ -272,11 +174,12 @@ public class ObjectBlenderModel {
         GLES20.glUniformMatrix4fv(uMVPMatrixLocation, 1, false, mvpMatrix, 0);
         GLES20.glUniformMatrix4fv(uModelMatrixLocation, 1, false, modelMatrix, 0);
 
+        // This draws the actual object
         GLES20.glDrawElements(GLES20.GL_TRIANGLES, numIndices, GLES20.GL_UNSIGNED_SHORT, indexBuffer);
     }
 
     public void drawBoundingVolume(int program, float[] mvpMatrix, float[] viewMatrix, float[] projectionMatrix) {
-        if (!drawBoundingVolume) return;
+
 
         int aPositionLocation = GLES20.glGetAttribLocation(program, "a_Position");
         int aColorLocation = GLES20.glGetAttribLocation(program, "a_Color");
@@ -309,6 +212,7 @@ public class ObjectBlenderModel {
 
         ShortBuffer indexBuffer = createShortBuffer(indices);
 
+        if (!drawBoundingVolume) return;
         GLES20.glVertexAttribPointer(aPositionLocation, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
         GLES20.glVertexAttribPointer(aColorLocation, 4, GLES20.GL_FLOAT, false, 0, colorBuffer);
 
@@ -331,7 +235,7 @@ public class ObjectBlenderModel {
     public boolean detectCollision(ObjectBlenderModel other) {
         boolean collision = this.boundingVolume.intersects(other.boundingVolume);
 //        Log.i(TAG, "detectCollision: " + getName() + " with " + other.getName() + " collision: " + collision);
-        color = collision ? Color.RED : Color.GREEN;
+        color = collision ? Color.GREEN : Color.RED;
         return collision;
     }
 
@@ -340,16 +244,17 @@ public class ObjectBlenderModel {
         Vector3D relativeVelocity = velocity.subtract(other.velocity);
         double velAlongNormal = relativeVelocity.dot(normal);
 
-        if (velAlongNormal > 0) return;
+//        if (velAlongNormal > 0) return;
 
         double impulseScalar = -(1 + 1) * velAlongNormal;
-        impulseScalar /= (1 / mass + 1 / other.mass);
+//        impulseScalar /= (1 / mass + 1 / other.mass);
+
 
         Vector3D impulse = normal.scale(impulseScalar);
-
+        color = Color.YELLOW;
         velocity = velocity.add(impulse.scale(1 / mass));
         other.velocity = other.velocity.subtract(impulse.scale(1 / other.mass));
-
+        updatePosition();
 //        Log.i(TAG, "handleCollision: " + getName() + " with " + other.getName() + " impulse: " + impulse);
     }
 
@@ -393,6 +298,7 @@ public class ObjectBlenderModel {
         if (isTiltEnabled) {
             velocityTilt = velocityTilt.add(new Vector3D(tilt[0], -tilt[1], 0).scale(sensitivity));
         }
+        updatePosition();
     }
 
     public synchronized void applyGravity(ObjectBlenderModel other) {
@@ -401,6 +307,7 @@ public class ObjectBlenderModel {
         } else {
             applyDynamicGravity(other);
         }
+        updatePosition();
     }
 
     private void applyConstantGravity() {

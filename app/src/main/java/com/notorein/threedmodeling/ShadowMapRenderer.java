@@ -154,7 +154,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
                     ObjectBlenderModel other = objects.get(j);
                     object.applyGravity(other);
                     if (object.boundingVolume.intersects(other.boundingVolume)) {
-//                        object.handleCollision(other);
+                        object.handleCollision(other);
 
                     }
                 }
@@ -265,6 +265,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         // Bind attributes, uniforms, and draw geometry
         synchronized (objects) {
             for (ObjectBlenderModel object : objects) {
+                // Get attribute and uniform locations from .glsl files in the main/assets/shaders folder
                 int aPositionLocation = GLES20.glGetAttribLocation(program, "a_Position");
                 int aNormalLocation = GLES20.glGetAttribLocation(program, "a_Normal");
                 int aColorLocation = GLES20.glGetAttribLocation(program, "a_Color");
@@ -276,12 +277,9 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
                 GLES20.glEnableVertexAttribArray(aColorLocation);
 
                 // Draw all objects
-
-//                Log.i(TAG, "Drawing object: " + object.getName());
                 object.drawObject(program, mvpMatrix, viewMatrix, projectionMatrix);
-
+                // Draw all bounding volumes
                 if (ObjectBlenderModel.drawBoundingVolume) {
-//                    Log.i(TAG, "Drawing bounding volume for object: " + object.getName());
                     object.drawBoundingVolume(program, mvpMatrix, viewMatrix, projectionMatrix);
                 }
 

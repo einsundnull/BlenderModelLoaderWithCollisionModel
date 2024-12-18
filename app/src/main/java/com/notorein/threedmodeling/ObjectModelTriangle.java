@@ -1,6 +1,6 @@
 package com.notorein.threedmodeling;
 
-public class CollisionModelTriangle {
+public class ObjectModelTriangle {
     private Vector3D v0;
     private Vector3D v1;
     private Vector3D v2;
@@ -11,7 +11,7 @@ public class CollisionModelTriangle {
     private Vector2D t1;
     private Vector2D t2;
 
-    public CollisionModelTriangle(Vector3D v0, Vector3D v1, Vector3D v2, Vector3D n0, Vector3D n1, Vector3D n2, Vector2D t0, Vector2D t1, Vector2D t2) {
+    public ObjectModelTriangle(Vector3D v0, Vector3D v1, Vector3D v2, Vector3D n0, Vector3D n1, Vector3D n2, Vector2D t0, Vector2D t1, Vector2D t2) {
         this.v0 = v0;
         this.v1 = v1;
         this.v2 = v2;
@@ -51,11 +51,11 @@ public class CollisionModelTriangle {
         );
     }
 
-    public boolean intersects(CollisionModelTriangle other) {
+    public boolean intersects(ObjectModelTriangle other) {
         return triangleTriangleIntersection(this, other);
     }
 
-    private  boolean triangleTriangleIntersection(CollisionModelTriangle t1, CollisionModelTriangle t2) {
+    private  boolean triangleTriangleIntersection(ObjectModelTriangle t1, ObjectModelTriangle t2) {
         Vector3D v0 = t1.v0;
         Vector3D v1 = t1.v1;
         Vector3D v2 = t1.v2;

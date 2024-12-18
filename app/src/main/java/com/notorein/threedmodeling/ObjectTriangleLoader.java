@@ -11,15 +11,16 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CollisionModelModelLoader {
+public class ObjectTriangleLoader {
 
-    private static final String TAG = "CollisionModelModelLoader";
+    private static final String TAG = "ObjectTriangleLoader";
     private List<Vector3D> vertices = new ArrayList<>();
     private List<Vector3D> normals = new ArrayList<>();
     private List<Vector2D> texCoords = new ArrayList<>();
+    private ArrayList<ObjectModelTriangle> objectTriangles;
 
-    public List<CollisionModelTriangle> loadTrianglesFromOBJ(Context context, String objFileName) {
-        List<CollisionModelTriangle> collisionModelTriangles = new ArrayList<>();
+    public List<ObjectModelTriangle> loadTrianglesFromOBJ(Context context, String objFileName) {
+        objectTriangles = new ArrayList<>();
 
         try {
             AssetManager assetManager = context.getAssets();
@@ -56,7 +57,7 @@ public class CollisionModelModelLoader {
                         break;
                     case "f":
                         // Parse faces and create triangles
-                        collisionModelTriangles.add(parseFace(parts));
+                        objectTriangles.add(parseFace(parts));
                         break;
                 }
             }
@@ -69,13 +70,13 @@ public class CollisionModelModelLoader {
         Log.i(TAG, "Loaded " + vertices.size() + " vertices");
         Log.i(TAG, "Loaded " + normals.size() + " normals");
         Log.i(TAG, "Loaded " + texCoords.size() + " texture coordinates");
-        Log.i(TAG, "Loaded " + collisionModelTriangles.size() + " collisionModelTriangles");
+        Log.i(TAG, "Loaded " + objectTriangles.size() + " objectTriangles");
 
-        return collisionModelTriangles;
+        return objectTriangles;
     }
 
     // Helper method to parse a face and create a triangle
-    private CollisionModelTriangle parseFace(String[] faceParts) {
+    private ObjectModelTriangle parseFace(String[] faceParts) {
         Vector3D[] faceVertices = new Vector3D[3];
         Vector3D[] faceNormals = new Vector3D[3];
         Vector2D[] faceTexCoords = new Vector2D[3];
@@ -92,7 +93,7 @@ public class CollisionModelModelLoader {
             faceNormals[i - 1] = normals.get(normalIndex);
         }
 
-        return new CollisionModelTriangle(
+        return new ObjectModelTriangle(
                 faceVertices[0], faceVertices[1], faceVertices[2],
                 faceNormals[0], faceNormals[1], faceNormals[2],
                 faceTexCoords[0], faceTexCoords[1], faceTexCoords[2]
@@ -109,5 +110,9 @@ public class CollisionModelModelLoader {
 
     public List<Vector2D> getTexCoords() {
         return texCoords;
+    }
+
+    public List<ObjectModelTriangle> getObjectTriangles() {
+        return objectTriangles;
     }
 }

@@ -23,7 +23,7 @@ public class CollisionModelAABB extends CollisionModelBoundingVolume {
                     (this.min.y - EPSILON < otherAABB.max.y && this.max.y + EPSILON > otherAABB.min.y) &&
                     (this.min.z - EPSILON < otherAABB.max.z && this.max.z + EPSILON > otherAABB.min.z);
 
-            Log.i(TAG, "intersects: Min: " + this.min + " Max: " + this.max + " Other Min: " + otherAABB.min + " Other Max: " + otherAABB.max);
+//            Log.i(TAG, "intersects: Min: " + this.min + " Max: " + this.max + " Other Min: " + otherAABB.min + " Other Max: " + otherAABB.max);
             return intersects;
         }
         return false;

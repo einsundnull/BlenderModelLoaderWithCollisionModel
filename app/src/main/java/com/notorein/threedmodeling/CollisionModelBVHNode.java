@@ -11,9 +11,9 @@ public class CollisionModelBVHNode {
     private final int TRIANGLE_THRESHOLD = 100; // Define the threshold
     CollisionModelBoundingVolume boundingVolume;
     private List<CollisionModelBVHNode> children;
-    private List<CollisionModelTriangle> collisionModelTriangles;
+    private List<ObjectModelTriangle> collisionModelTriangles;
 
-    public CollisionModelBVHNode(CollisionModelBoundingVolume boundingVolume, List<CollisionModelTriangle> collisionModelTriangles) {
+    public CollisionModelBVHNode(CollisionModelBoundingVolume boundingVolume, List<ObjectModelTriangle> collisionModelTriangles) {
         this.boundingVolume = boundingVolume;
         this.collisionModelTriangles = collisionModelTriangles;
         this.children = new ArrayList<>();
@@ -43,9 +43,9 @@ public class CollisionModelBVHNode {
         return false;
     }
 
-    private boolean checkTriangleCollision(List<CollisionModelTriangle> triangles1, List<CollisionModelTriangle> triangles2) {
-        for (CollisionModelTriangle t1 : triangles1) {
-            for (CollisionModelTriangle t2 : triangles2) {
+    private boolean checkTriangleCollision(List<ObjectModelTriangle> triangles1, List<ObjectModelTriangle> triangles2) {
+        for (ObjectModelTriangle t1 : triangles1) {
+            for (ObjectModelTriangle t2 : triangles2) {
                 if (t1.intersects(t2)) {
                     return true;
                 }
@@ -54,17 +54,17 @@ public class CollisionModelBVHNode {
         return false;
     }
 
-    private CollisionModelBVHNode buildBVH(List<CollisionModelTriangle> collisionModelTriangles, float size) {
+    private CollisionModelBVHNode buildBVH(List<ObjectModelTriangle> collisionModelTriangles, float size) {
         if (collisionModelTriangles.size() <= TRIANGLE_THRESHOLD) {
             CollisionModelAABB boundingVolume = calculateBoundingVolume(collisionModelTriangles, size);
             return new CollisionModelBVHNode(boundingVolume, collisionModelTriangles);
         }
 
-        List<CollisionModelTriangle> leftCollisionModelTriangles = new ArrayList<>();
-        List<CollisionModelTriangle> rightCollisionModelTriangles = new ArrayList<>();
+        List<ObjectModelTriangle> leftCollisionModelTriangles = new ArrayList<>();
+        List<ObjectModelTriangle> rightCollisionModelTriangles = new ArrayList<>();
         Vector3D centroid = calculateCentroid(collisionModelTriangles);
 
-        for (CollisionModelTriangle collisionModelTriangle : collisionModelTriangles) {
+        for (ObjectModelTriangle collisionModelTriangle : collisionModelTriangles) {
             if (collisionModelTriangle.getCentroid().x < centroid.x) {
                 leftCollisionModelTriangles.add(collisionModelTriangle);
             } else {
@@ -83,35 +83,35 @@ public class CollisionModelBVHNode {
         return node;
     }
 
-    private CollisionModelAABB calculateBoundingVolume(List<CollisionModelTriangle> collisionModelTriangles, float size) {
+    private CollisionModelAABB calculateBoundingVolume(List<ObjectModelTriangle> collisionModelTriangles, float size) {
         Vector3D min = new Vector3D(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
         Vector3D max = new Vector3D(Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE);
 
-        for (CollisionModelTriangle collisionModelTriangle : collisionModelTriangles) {
+        for (ObjectModelTriangle collisionModelTriangle : collisionModelTriangles) {
             for (Vector3D vertex : collisionModelTriangle.getVertices()) {
-//                min.x = Math.min(min.x, vertex.x * size);
-//                min.y = Math.min(min.y, vertex.y * size);
-//                min.z = Math.min(min.z, vertex.z * size);
-//                max.x = Math.max(max.x, vertex.x * size);
-//                max.y = Math.max(max.y, vertex.y * size);
-//                max.z = Math.max(max.z, vertex.z * size);
+                min.x = Math.min(min.x, vertex.x * size);
+                min.y = Math.min(min.y, vertex.y * size);
+                min.z = Math.min(min.z, vertex.z * size);
+                max.x = Math.max(max.x, vertex.x * size);
+                max.y = Math.max(max.y, vertex.y * size);
+                max.z = Math.max(max.z, vertex.z * size);
 
-                min.x = Math.min(min.x, vertex.x );
-                min.y = Math.min(min.y, vertex.y );
-                min.z = Math.min(min.z, vertex.z);
-                max.x = Math.max(max.x, vertex.x);
-                max.y = Math.max(max.y, vertex.y );
-                max.z = Math.max(max.z, vertex.z );
+//                min.x = Math.min(min.x, vertex.x );
+//                min.y = Math.min(min.y, vertex.y );
+//                min.z = Math.min(min.z, vertex.z);
+//                max.x = Math.max(max.x, vertex.x);
+//                max.y = Math.max(max.y, vertex.y );
+//                max.z = Math.max(max.z, vertex.z );
             }
         }
 
-        Log.i(TAG, "calculateBoundingVolume: Min: " + min + " Max: " + max);
+//        Log.i(TAG, "calculateBoundingVolume: Min: " + min + " Max: " + max);
         return new CollisionModelAABB(min, max);
     }
 
-    private Vector3D calculateCentroid(List<CollisionModelTriangle> collisionModelTriangles) {
+    private Vector3D calculateCentroid(List<ObjectModelTriangle> collisionModelTriangles) {
         Vector3D centroid = new Vector3D(0, 0, 0);
-        for (CollisionModelTriangle collisionModelTriangle : collisionModelTriangles) {
+        for (ObjectModelTriangle collisionModelTriangle : collisionModelTriangles) {
             centroid = centroid.add(collisionModelTriangle.getCentroid());
         }
         centroid = centroid.scale(1.0f / collisionModelTriangles.size());

@@ -15,7 +15,7 @@ public abstract class Object {
     private static final int TRIANGLE_THRESHOLD = 10;
     private final Context context;
     private final String objFileName;
-    private  CollisionModelModelLoader collisionModelModelLoader;
+    private ObjectTriangleLoader objectTriangleLoader;
     private String name;
     private FloatBuffer vertexBuffer;
     private FloatBuffer colorBuffer;
@@ -68,11 +68,11 @@ public abstract class Object {
         this.bouncesOff = bouncesOff;
         this.name = name;
         this.objFileName = objFileName;
-        collisionModelModelLoader = new CollisionModelModelLoader();
-        this.bvhRoot = buildBVH(collisionModelModelLoader.loadTrianglesFromOBJ(context, objFileName));
+        objectTriangleLoader = new ObjectTriangleLoader();
+        this.bvhRoot = buildBVH(objectTriangleLoader.loadTrianglesFromOBJ(context, objFileName));
     }
 
-    CollisionModelBVHNode buildBVH(List<CollisionModelTriangle> collisionModelTriangles) {
+    CollisionModelBVHNode buildBVH(List<ObjectModelTriangle> collisionModelTriangles) {
         Log.i(TAG, name + "   Building BVH with " + collisionModelTriangles.size() + " collisionModelTriangles");
         if (collisionModelTriangles.size() <= TRIANGLE_THRESHOLD) {
             CollisionModelAABB boundingVolume = calculateBoundingVolume(collisionModelTriangles);
@@ -80,11 +80,11 @@ public abstract class Object {
             return new CollisionModelBVHNode(boundingVolume, collisionModelTriangles);
         }
 
-        List<CollisionModelTriangle> leftCollisionModelTriangles = new ArrayList<>();
-        List<CollisionModelTriangle> rightCollisionModelTriangles = new ArrayList<>();
+        List<ObjectModelTriangle> leftCollisionModelTriangles = new ArrayList<>();
+        List<ObjectModelTriangle> rightCollisionModelTriangles = new ArrayList<>();
         Vector3D centroid = calculateCentroid(collisionModelTriangles);
 
-        for (CollisionModelTriangle collisionModelTriangle : collisionModelTriangles) {
+        for (ObjectModelTriangle collisionModelTriangle : collisionModelTriangles) {
             if (collisionModelTriangle.getCentroid().x < centroid.x) {
                 leftCollisionModelTriangles.add(collisionModelTriangle);
             } else {
@@ -104,11 +104,11 @@ public abstract class Object {
         return node;
     }
 
-    private CollisionModelAABB calculateBoundingVolume(List<CollisionModelTriangle> collisionModelTriangles) {
+    private CollisionModelAABB calculateBoundingVolume(List<ObjectModelTriangle> collisionModelTriangles) {
         Vector3D min = new Vector3D(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
         Vector3D max = new Vector3D(Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE);
 
-        for (CollisionModelTriangle collisionModelTriangle : collisionModelTriangles) {
+        for (ObjectModelTriangle collisionModelTriangle : collisionModelTriangles) {
             for (Vector3D vertex : collisionModelTriangle.getVertices()) {
                 min.x = Math.min(min.x, vertex.x);
                 min.y = Math.min(min.y, vertex.y);
@@ -122,9 +122,9 @@ public abstract class Object {
         return new CollisionModelAABB(min, max);
     }
 
-    private Vector3D calculateCentroid(List<CollisionModelTriangle> collisionModelTriangles) {
+    private Vector3D calculateCentroid(List<ObjectModelTriangle> collisionModelTriangles) {
         Vector3D centroid = new Vector3D(0, 0, 0);
-        for (CollisionModelTriangle collisionModelTriangle : collisionModelTriangles) {
+        for (ObjectModelTriangle collisionModelTriangle : collisionModelTriangles) {
             centroid = centroid.add(collisionModelTriangle.getCentroid());
         }
         centroid = centroid.scale(1.0f / collisionModelTriangles.size());
@@ -258,10 +258,10 @@ public abstract class Object {
         this.bvhRoot = buildBVH( updateTriangles());
     }
 
-    private   List<CollisionModelTriangle> updateTriangles() {
+    private   List<ObjectModelTriangle> updateTriangles() {
         // Update the vertices of the collisionModelTriangles based on the object's transformation matrix
-        List<CollisionModelTriangle> collisionModelTriangles = collisionModelModelLoader.loadTrianglesFromOBJ(context, objFileName);
-        for (CollisionModelTriangle collisionModelTriangle : collisionModelTriangles) {
+        List<ObjectModelTriangle> collisionModelTriangles = objectTriangleLoader.loadTrianglesFromOBJ(context, objFileName);
+        for (ObjectModelTriangle collisionModelTriangle : collisionModelTriangles) {
             Vector3D[] vertices = collisionModelTriangle.getVertices();
             for (int i = 0; i < vertices.length; i++) {
                 vertices[i] = vertices[i].add(position);

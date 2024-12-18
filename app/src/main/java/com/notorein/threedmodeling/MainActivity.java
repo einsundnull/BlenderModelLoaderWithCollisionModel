@@ -302,9 +302,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         objects = new ArrayList<>();
         objects.add(new ObjectBlenderModel(context, 1, new Vector3D(0, -400, 800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), 1000, Color.BLUE, 100, true, false, true, true, true, "Plane", "cyl"));
         objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-600, 0, 800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectSphereConfig.Sun.MASS, Color.MAGENTA, 100, false, false, true, true, true, "CHECK", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(600, 0, 800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectSphereConfig.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-600, 800, 800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectSphereConfig.Sun.MASS, Color.MAGENTA, 100, false, false, true, true, true, "CHECK", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(600, 0, -800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectSphereConfig.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
+//        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(600, 0, 800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectSphereConfig.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
+//        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-600, 800, 800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectSphereConfig.Sun.MASS, Color.MAGENTA, 100, false, false, true, true, true, "CHECK", "cyl"));
+//        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(600, 0, -800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectSphereConfig.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
 
         return objects;
     }
