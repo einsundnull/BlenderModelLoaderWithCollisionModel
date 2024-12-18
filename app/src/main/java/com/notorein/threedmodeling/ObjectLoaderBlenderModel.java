@@ -17,6 +17,8 @@ public class ObjectLoaderBlenderModel {
     private FloatBuffer normalBuffer;
     private ShortBuffer indexBuffer;
     private int numIndices;
+    public float[] vertexArray,normalArray;
+    public short[] indexArray;
 
     public void loadObjModel(Context context, String objFileName, int color, ObjectLoaderTriangle objectLoaderTriangle) {
         collisionModelTriangles = objectLoaderTriangle.loadTrianglesFromOBJ(context, objFileName);
@@ -24,9 +26,9 @@ public class ObjectLoaderBlenderModel {
         List<Vector3D> normalsObjModel = objectLoaderTriangle.getNormals();
 
 
-        float[] vertexArray = new float[verticesObjModel.size() * 3];
-        float[] normalArray = new float[normalsObjModel.size() * 3];
-        short[] indexArray = new short[collisionModelTriangles.size() * 3];
+        vertexArray = new float[verticesObjModel.size() * 3];
+     normalArray = new float[normalsObjModel.size() * 3];
+        indexArray = new short[collisionModelTriangles.size() * 3];
 
         for (int i = 0; i < verticesObjModel.size(); i++) {
             Vector3D vertex = verticesObjModel.get(i);
@@ -55,6 +57,11 @@ public class ObjectLoaderBlenderModel {
         normalBuffer = createFloatBuffer(normalArray);
         indexBuffer = createShortBuffer(indexArray);
 
+        updateColorBuffer(color);
+
+    }
+
+    public void updateColorBuffer(int color) {
         float r = ((color >> 16) & 0xFF) / 255.0f;
         float g = ((color >> 8) & 0xFF) / 255.0f;
         float b = (color & 0xFF) / 255.0f;

@@ -11,7 +11,7 @@ public class CollisionModelBVHNode {
     private final int TRIANGLE_THRESHOLD = 10; // Define the threshold
     CollisionModelBoundingVolume boundingVolume;
     private List<CollisionModelBVHNode> children;
-    private List<ObjectModelTriangle> collisionModelTriangles;
+    private final List<ObjectModelTriangle> collisionModelTriangles;
 
     public CollisionModelBVHNode(CollisionModelBoundingVolume boundingVolume, List<ObjectModelTriangle> collisionModelTriangles) {
         this.boundingVolume = boundingVolume;
@@ -24,24 +24,33 @@ public class CollisionModelBVHNode {
     }
 
     public boolean detectCollision(CollisionModelBVHNode other) {
+        // Check if the bounding volumes intersect
         if (!this.boundingVolume.intersects(other.boundingVolume)) {
             return false;
         }
+
+        // If both nodes are leaf nodes, check for triangle-triangle intersections
         if (this.children.isEmpty() && other.children.isEmpty()) {
             return checkTriangleCollision(this.collisionModelTriangles, other.collisionModelTriangles);
         }
+
+        // Recursively check for collisions between the children of the nodes
         for (CollisionModelBVHNode child : this.children) {
             if (child.detectCollision(other)) {
                 return true;
             }
         }
+
         for (CollisionModelBVHNode otherChild : other.children) {
             if (detectCollision(otherChild)) {
                 return true;
             }
         }
+
+        // No collision detected
         return false;
     }
+
 
     private boolean checkTriangleCollision(List<ObjectModelTriangle> triangles1, List<ObjectModelTriangle> triangles2) {
         for (ObjectModelTriangle t1 : triangles1) {

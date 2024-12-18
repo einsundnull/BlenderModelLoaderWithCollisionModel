@@ -265,12 +265,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         buttonSpeedUp.setOnClickListener(v -> {
             UIClass.animateClick(buttonSpeedUp);
-            shadowMapRenderer.speedUpSimulation();
+//            shadowMapRenderer.speedUpSimulation();
         });
 
         buttonSpeedDown.setOnClickListener(v -> {
             UIClass.animateClick(buttonSpeedDown);
-            shadowMapRenderer.speedDownSimulation();
+//            shadowMapRenderer.speedDownSimulation();
         });
 
         buttonPlay.setOnClickListener(v -> {

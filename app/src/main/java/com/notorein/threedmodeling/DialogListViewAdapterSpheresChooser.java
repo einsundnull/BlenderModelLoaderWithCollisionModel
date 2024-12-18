@@ -39,7 +39,7 @@ public class DialogListViewAdapterSpheresChooser extends ArrayAdapter<Object> {
         selectedObject = objects.get(position);
 
         sphereName = listItemView.findViewById(R.id.tvBodyName);
-        sphereName.setText(selectedObject.getName());
+        sphereName.setText(selectedObject.name);
 
         findPlanet = listItemView.findViewById(R.id.findPlanet);
         ivFollow = listItemView.findViewById(R.id.ivFollow);
@@ -51,7 +51,7 @@ public class DialogListViewAdapterSpheresChooser extends ArrayAdapter<Object> {
 //                selectedObject = Objects.get(position);
 //                selectedObject.setPosition(position);
 //                activityMain.getSpheres().get(position).setPosition(position);
-                Toast.makeText(context, "Set " + selectedObject.getName() + " properties", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Set " + selectedObject.name + " properties", Toast.LENGTH_SHORT).show();
                 activityMain.getDialogCelestialSphereValues().setSelectedSphere(selectedObject);
                 activityMain.getDialogCelestialSphereValues().initSphereValueMenu(selectedObject); // Sets the values of the selected sphere to the EditText fields in DialogCelestialSphereValues
 
@@ -68,7 +68,7 @@ public class DialogListViewAdapterSpheresChooser extends ArrayAdapter<Object> {
                 UIClass.animateClick(findPlanet);
                 activityMain.setIndexOfSelectedSphereToFollow(position);
 //                activityMain.searchFunction(position);
-                Toast.makeText(context, "Centering on " + activityMain.getSpheres().get(position).getName(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Centering on " + activityMain.getSpheres().get(position).name, Toast.LENGTH_SHORT).show();
             }
         });
 

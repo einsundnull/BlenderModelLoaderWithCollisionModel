@@ -195,7 +195,7 @@ public class DialogCelestialSphereValues {
 //                    int color = ((ColorDrawable) colorView.getBackground()).getColor();
 //                    int trailColor = ((ColorDrawable) trailColorView.getBackground()).getColor();
 //
-//                    Object updatedBody = new Object(selectedObjectSphere.getPositionIndex(),false,true, x, y, z, vx, vy, vz, mass, color, trailColor, size, trailLength, 0.5f, selectedObjectSphere.getName());
+//                    Object updatedBody = new Object(selectedObjectSphere.getPositionIndex(),false,true, x, y, z, vx, vy, vz, mass, color, trailColor, size, trailLength, 0.5f, selectedObjectSphere.name);
 ////                    updatedBody.setTrail(new ArrayList<>(trailLength));
 //                    int index = activityMain.getSpheres().indexOf(selectedObjectSphere);
 //                    if (index != -1) {
@@ -225,18 +225,18 @@ public class DialogCelestialSphereValues {
     }
 
     public void setSelectedBodyValues() {
-        tvName.setText(selectedObjectSphere.getName());
-        etMass.setText(String.valueOf(selectedObjectSphere.getMass()));
-        etSize.setText(String.valueOf(selectedObjectSphere.getSize()));
+        tvName.setText(selectedObjectSphere.name);
+        etMass.setText(String.valueOf(selectedObjectSphere.mass));
+        etSize.setText(String.valueOf(selectedObjectSphere.size));
 //        etTrailLength.setText(String.valueOf(selectedObjectSphere.getTrailLength()));
-        etVx.setText(String.valueOf(selectedObjectSphere.getVx()));
-        etVy.setText(String.valueOf(selectedObjectSphere.getVy()));
-        etVz.setText(String.valueOf(selectedObjectSphere.getVz())); // Assuming vz is not used in the Body class
-        etX.setText(String.valueOf(selectedObjectSphere.getX()));
-        etY.setText(String.valueOf(selectedObjectSphere.getY()));
-        etZ.setText(String.valueOf(selectedObjectSphere.getZ()));// Assuming z is not used in the Body class
-        colorView.setBackgroundColor(selectedObjectSphere.getColor());
-        trailColorView.setBackgroundColor(selectedObjectSphere.getColorTrail());
+        etVx.setText(String.valueOf(selectedObjectSphere.velocity.x));
+        etVy.setText(String.valueOf(selectedObjectSphere.velocity.y));
+        etVz.setText(String.valueOf(selectedObjectSphere.velocity.z)); // Assuming vz is not used in the Body class
+        etX.setText(String.valueOf(selectedObjectSphere.position.x));
+        etY.setText(String.valueOf(selectedObjectSphere.position.y));
+        etZ.setText(String.valueOf(selectedObjectSphere.position.z));// Assuming z is not used in the Body class
+        colorView.setBackgroundColor(selectedObjectSphere.color);
+        trailColorView.setBackgroundColor(selectedObjectSphere.color);
     }
 
     private void showColorPickerDialog(final View colorView) {

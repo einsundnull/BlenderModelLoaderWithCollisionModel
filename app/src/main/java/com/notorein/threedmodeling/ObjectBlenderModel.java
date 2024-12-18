@@ -21,32 +21,33 @@ public class ObjectBlenderModel {
     private final String objFileName;
     private final ObjectLoaderTriangle objectLoaderTriangle;
     private final ObjectLoaderBlenderModel objectLoader;
-    private String name;
-    private FloatBuffer vertexBuffer;
-    private FloatBuffer colorBuffer;
-    private FloatBuffer normalBuffer;
-    private ShortBuffer indexBuffer;
-    private int numIndices;
-    private FloatBuffer textureBuffer;
-    private ArrayList<Vector3D> trail;
-    private Vector3D initialPosition;
-    private Vector3D initialVelocity;
-    private Vector3D position;
-    private Vector3D velocity;
-    private Vector3D velocityTilt;
-    private double mass;
-    private int color;
-    private int colorTrail;
-    private double size;
-    private boolean isTiltEnabled;
-    private boolean attractsOther;
-    private boolean isAttractedByOther;
-    private boolean bouncesOff;
-    private boolean followGravity;
-    private int positionIndex;
-    private double gravityStrength = 10;
+    public String name;
+    public FloatBuffer vertexBuffer;
+    public FloatBuffer colorBuffer;
+    public FloatBuffer normalBuffer;
+    public ShortBuffer indexBuffer;
+    public int numIndices;
+    public FloatBuffer textureBuffer;
+    public ArrayList<Vector3D> trail;
+    public Vector3D initialPosition;
+    public Vector3D initialVelocity;
+    public Vector3D position;
+    public Vector3D velocity;
+    public Vector3D velocityTilt;
+    public double mass;
+    public int color;
+    public int colorTrail;
+    public double size;
+    public boolean isTiltEnabled;
+    public boolean attractsOther;
+    public boolean isAttractedByOther;
+    public boolean bouncesOff;
+    public boolean followGravity;
+    public int positionIndex;
+    public double gravityStrength = 1;
+    public int colorInitial;
     CollisionModelAABB boundingVolume;
-    private boolean useConstantGravity = true;
+    public boolean useConstantGravity = true;
     public static boolean drawBoundingVolume = true;
 
     private static final float[] DEFAULT_COLOR = {
@@ -70,7 +71,31 @@ public class ObjectBlenderModel {
             0.0f, 1.0f, 0.0f, 1.0f,
             0.0f, 1.0f, 0.0f, 1.0f
     };
-    private List<ObjectModelTriangle> objectTriangles;
+    public Vector3D localBoundingVolumeCenter;
+    public Vector3D worldBoundingVolumeCenter;
+    public Vector3D opticalCenter;
+
+    public void logBoundingVolumeAndOpticalCenter() {
+        // Calculate the center of the bounding volume in local coordinates
+         localBoundingVolumeCenter = new Vector3D(
+                (boundingVolume.min.x + boundingVolume.max.x) / 2.0,
+                (boundingVolume.min.y + boundingVolume.max.y) / 2.0,
+                (boundingVolume.min.z + boundingVolume.max.z) / 2.0
+        );
+
+        // Convert the local center to world coordinates
+         worldBoundingVolumeCenter = localBoundingVolumeCenter.add(position);
+
+        // The position of the optical representation is the position of the object
+         opticalCenter = position;
+
+        // Log the positions
+//        Log.i(TAG, "Bounding Volume Center (Local): " + localBoundingVolumeCenter);
+        Log.i(TAG, "Bounding Volume Center (World): " + name + " " + worldBoundingVolumeCenter);
+        Log.i(TAG, "Optical Representation Center: " + name + " " + opticalCenter);
+        Log.i(TAG, "Position: " + name + " " + position);
+    }
+
 
     public ObjectBlenderModel(Context context, int positionIndex, Vector3D position, Vector3D velocity, Vector3D velocityTilt, double mass, int color, double size, boolean isTiltEnabled, boolean followGravity, boolean attractsOther, boolean isAttractedByOther, boolean bouncesOff, String name, String objFileName) {
         this.context = context;
@@ -82,6 +107,7 @@ public class ObjectBlenderModel {
         this.velocityTilt = velocityTilt;
         this.mass = mass;
         this.color = color;
+        this.colorInitial = color;
         this.size = size;
         this.followGravity = followGravity;
         this.isTiltEnabled = isTiltEnabled;
@@ -93,7 +119,7 @@ public class ObjectBlenderModel {
         objectLoaderTriangle = new ObjectLoaderTriangle();
         objectLoader = new ObjectLoaderBlenderModel();
         objectLoader.loadObjModel(context, objFileName, color, objectLoaderTriangle);
-        objectTriangles = objectLoader.getObjectTriangles();
+
         numIndices = objectLoader.getNumIndices();
         vertexBuffer = objectLoader.getVertexBuffer();
         normalBuffer = objectLoader.getNormalBuffer();
@@ -101,15 +127,18 @@ public class ObjectBlenderModel {
         colorBuffer = objectLoader.getColorBuffer();
 
         updateBoundingVolume();
+        logBoundingVolumeAndOpticalCenter();
     }
 
+    public void updateColorBuffer(int color) {
+        objectLoader.updateColorBuffer(color);
+        colorBuffer = objectLoader.getColorBuffer();
+    }
 
-
-
-
-
-
-
+    public void updateColorBuffer() {
+        objectLoader.updateColorBuffer(color);
+        colorBuffer = objectLoader.getColorBuffer();
+    }
 
     private void updateBoundingVolume() {
         Vector3D min = new Vector3D(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
@@ -129,23 +158,6 @@ public class ObjectBlenderModel {
         }
 
         this.boundingVolume = new CollisionModelAABB(min, max);
-
-        // Calculate the center of the bounding volume
-        Vector3D center = new Vector3D(
-                (min.x + max.x) / 2,
-                (min.y + max.y) / 2,
-                (min.z + max.z) / 2
-        );
-
-        // Log the center coordinates
-        Log.i(TAG, "updateBoundingVolume: " + getName() + " Bounding Volume Center: (" + center.x + ", " + center.y + ", " + center.z + ")");
-//        Log.i(TAG, "updateBoundingVolume: " + getName() + " Bounding Volume: " + boundingVolume);
-    }
-
-
-
-    public int getPositionIndex() {
-        return positionIndex;
     }
 
     private Vector3D getVertex(int index) {
@@ -224,17 +236,8 @@ public class ObjectBlenderModel {
         GLES20.glDisableVertexAttribArray(aColorLocation);
     }
 
-    public void enableBoundingVolumeDrawing() {
-        drawBoundingVolume = true;
-    }
-
-    public void disableBoundingVolumeDrawing() {
-        drawBoundingVolume = false;
-    }
-
     public boolean detectCollision(ObjectBlenderModel other) {
         boolean collision = this.boundingVolume.intersects(other.boundingVolume);
-//        Log.i(TAG, "detectCollision: " + getName() + " with " + other.getName() + " collision: " + collision);
         color = collision ? Color.BLUE : Color.GREEN;
         return collision;
     }
@@ -244,7 +247,7 @@ public class ObjectBlenderModel {
         Vector3D relativeVelocity = velocity.subtract(other.velocity);
         double velAlongNormal = relativeVelocity.dot(normal);
 
-//        if (velAlongNormal > 0) return;
+        if (velAlongNormal > 0) return;
 
         double impulseScalar = -(1 + 1) * velAlongNormal;
 //        impulseScalar /= (1 / mass + 1 / other.mass);
@@ -255,9 +258,8 @@ public class ObjectBlenderModel {
         velocity = velocity.add(impulse.scale(1 / mass));
         other.velocity = other.velocity.subtract(impulse.scale(1 / other.mass));
         updatePosition();
-//        Log.i(TAG, "handleCollision: " + getName() + " with " + other.getName() + " impulse: " + impulse);
+        other.updatePosition();
     }
-
 
 
 //    void handleCollision(ObjectBlenderModel other) {
@@ -287,13 +289,16 @@ public class ObjectBlenderModel {
 //    }
 
     public synchronized void updatePosition() {
+
         position = position.add(velocity);
         if (isTiltEnabled) {
             position = position.add(velocityTilt);
         }
+
         updateBoundingVolume();
-//        Log.i(TAG, "updatePosition: " + getName() + " Position: " + position + " Velocity: " + velocity + " Bounding Volume: " + boundingVolume);
+        logBoundingVolumeAndOpticalCenter(); // Log the centers after updating the position
     }
+
     public synchronized void applyTilt(float[] tilt, float sensitivity) {
         if (isTiltEnabled) {
             velocityTilt = velocityTilt.add(new Vector3D(tilt[0], -tilt[1], 0).scale(sensitivity));
@@ -303,7 +308,8 @@ public class ObjectBlenderModel {
 
     public synchronized void applyGravity(ObjectBlenderModel other) {
         if (useConstantGravity) {
-            if (followGravity) applyConstantGravity();
+            if (followGravity)
+                applyConstantGravity();
         } else {
             applyDynamicGravity(other);
         }
@@ -319,6 +325,7 @@ public class ObjectBlenderModel {
 
     private void applyDynamicGravity(ObjectBlenderModel other) {
         double G = gravityStrength;
+
         Vector3D distanceVector = other.position.subtract(position);
         double distance = distanceVector.magnitude();
         if (distance < 10) return;
@@ -337,235 +344,17 @@ public class ObjectBlenderModel {
         }
     }
 
-    public boolean isUseConstantGravity() {
-        return useConstantGravity;
-    }
-
-    public void setUseConstantGravity(boolean useConstantGravity) {
-        this.useConstantGravity = useConstantGravity;
-    }
-
-
-
-    public FloatBuffer getVertexBuffer() {
-        return vertexBuffer;
-    }
-
-    public FloatBuffer getColorBuffer() {
-        return colorBuffer;
-    }
-
-    public FloatBuffer getNormalBuffer() {
-        return normalBuffer;
-    }
-
-    public ShortBuffer getIndexBuffer() {
-        return indexBuffer;
-    }
-
-    public int getNumIndices() {
-        return numIndices;
-    }
-
-
-
-    public double getGravityStrength() {
-        return gravityStrength;
-    }
-
-    public void setGravityStrength(double gravityStrength) {
-        this.gravityStrength = gravityStrength;
-    }
-
-    public synchronized void speedUp() {
-        velocity = velocity.scale(1.1);
-    }
-
-    public synchronized void speedDown() {
-        velocity = velocity.scale(0.9);
-    }
-
-    public synchronized void speedUpTilt() {
-        velocityTilt = velocityTilt.scale(1.1);
-    }
-
-    public synchronized void speedDownTilt() {
-        velocityTilt = velocityTilt.scale(0.9);
-    }
-
-    public Vector3D getPosition() {
-        return position;
-    }
-
-    public void setPosition(Vector3D position) {
-        this.position = position;
-    }
-
-    public Vector3D getVelocity() {
-        return velocity;
-    }
-
-    public void setVelocity(Vector3D velocity) {
-        this.velocity = velocity;
-    }
-
-    public double getMass() {
-        return mass <= 0 ? 1 : mass;
-    }
-
-    public void setMass(double mass) {
-        this.mass = mass;
-    }
-
-    public int getColor() {
-        return color;
-    }
-
-    public void setColor(int color) {
-        this.color = color;
-    }
-
-    public int getColorTrail() {
-        return colorTrail;
-    }
-
-    public void setColorTrail(int colorTrail) {
-        this.colorTrail = colorTrail;
-    }
-
-    public double getSize() {
-        return size;
-    }
-
-    public void setSize(float size) {
-        this.size = size;
-    }
-
-    public ArrayList<Vector3D> getTrail() {
-        return trail;
-    }
-
-    public void setTrail(ArrayList<Vector3D> trail) {
-        this.trail = trail;
-    }
-
-    public boolean isTiltEnabled() {
-        return isTiltEnabled;
-    }
-
-    public void setTiltEnabled(boolean tiltEnabled) {
-        this.isTiltEnabled = tiltEnabled;
-    }
-
-    public boolean isFollowGravity() {
-        return followGravity;
-    }
-
-    public void setFollowGravity() {
-        this.followGravity = followGravity;
-    }
-
-    public boolean isAttractsOther() {
-        return attractsOther;
-    }
-
-    public boolean isAttractedByOther() {
-        return isAttractedByOther;
-    }
-
-    public void setAttractsOther(boolean attractsOther) {
-        this.attractsOther = attractsOther;
-    }
-
-    public void setAttractedByOther(boolean isAttractedByOther) {
-        this.isAttractedByOther = isAttractedByOther;
-    }
-
-    public boolean isBouncesOff() {
-        return bouncesOff;
-    }
-
-    public void setBouncesOff(boolean bouncesOff) {
-        this.bouncesOff = bouncesOff;
-    }
-
-    public Vector3D getVelocityTilt() {
-        return velocityTilt;
-    }
-
-    public void setVelocityTilt(Vector3D velocityTilt) {
-        this.velocityTilt = velocityTilt;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setPositionIndex(int positionIndex) {
-        this.positionIndex = positionIndex;
-    }
-
-    public double getX() {
-        return position.x;
-    }
-
-    public void setX(double x) {
-        position.x = x;
-    }
-
-    public double getY() {
-        return position.y;
-    }
-
-    public void setY(double y) {
-        position.y = y;
-    }
-
-    public double getZ() {
-        return position.z;
-    }
-
-    public void setZ(double z) {
-        position.z = z;
-    }
-
-    public double getVx() {
-        return velocity.x;
-    }
-
-    public void setVx(double vx) {
-        velocity.x = vx;
-    }
-
-    public double getVy() {
-        return velocity.y;
-    }
-
-    public void setVy(double vy) {
-        velocity.y = vy;
-    }
-
-    public double getVz() {
-        return velocity.z;
-    }
-
-    public void setVz(double vz) {
-        velocity.z = vz;
-    }
 
     public synchronized void reset() {
-        setPosition(new Vector3D(initialPosition.x, initialPosition.y, initialPosition.z));
-        setVelocity(new Vector3D(initialVelocity.x, initialVelocity.y, initialVelocity.z));
-        setVelocityTilt(new Vector3D(initialVelocity.x, initialVelocity.y, initialVelocity.z));
+        position = new Vector3D(initialPosition.x, initialPosition.y, initialPosition.z);
+        velocity = new Vector3D(initialVelocity.x, initialVelocity.y, initialVelocity.z);
+        velocityTilt = new Vector3D(initialVelocity.x, initialVelocity.y, initialVelocity.z);
     }
 
     public void toggleConstantGravity() {
         useConstantGravity = !useConstantGravity;
     }
+
 
 
 }

@@ -1,9 +1,13 @@
 package com.notorein.threedmodeling;
 
+import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
+
 import android.content.Context;
+import android.graphics.Color;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
+import android.util.Log;
 import android.util.Pair;
 
 import java.io.BufferedReader;
@@ -145,7 +149,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     }
 
 
-//    private void updateObjects() {
+    //    private void updateObjects() {
 //        synchronized (objects) {
 //            // Broad phase collision detection
 //            for (int i = 0; i < objects.size(); i++) {
@@ -167,19 +171,20 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
 //    }
     private void updateObjects() {
         synchronized (objects) {
+
             // Broad phase collision detection
             List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions = broadPhaseCollisionDetection();
             // Narrow phase collision detection and response
             for (Pair<ObjectBlenderModel, ObjectBlenderModel> pair : potentialCollisions) {
                 ObjectBlenderModel object = pair.first;
                 ObjectBlenderModel other = pair.second;
-                object.applyGravity(other);
                 if (object.detectCollision(other)) {
                     object.handleCollision(other);
                 }
             }
             // Update positions for all objects
             for (ObjectBlenderModel object : objects) {
+
                 object.updatePosition();
             }
         }
@@ -191,11 +196,34 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
             ObjectBlenderModel object = objects.get(i);
             for (int j = i + 1; j < objects.size(); j++) {
                 ObjectBlenderModel other = objects.get(j);
-                if (object.boundingVolume.intersects(other.boundingVolume)) {
-                    potentialCollisions.add(new Pair<>(object, other));
-//                    object.applyGravity(other);
+                object.applyGravity(other);
+
+                Log.i(TAG, "broadPhaseCollisionDetection: magintude " + object.worldBoundingVolumeCenter.subtract(other.worldBoundingVolumeCenter).magnitude());
+                if (object.worldBoundingVolumeCenter.subtract(other.worldBoundingVolumeCenter).magnitude() < (object.size + other.size) * 1.5) {
+//                        potentialCollisions.add(new Pair<>(object, other));
+                    object.color = Color.GREEN;
+                    object.updateColorBuffer(object.color);
+                    other.color = Color.GREEN;
+                    other.updateColorBuffer(other.color);
+                    ;
+
+                } else {
+
+                    object.color = object.colorInitial;
+                    object.updateColorBuffer(object.colorInitial);
+                    other.color = other.colorInitial;
+                    other.updateColorBuffer(other.colorInitial);
                 }
             }
+
+//                if (object.boundingVolume.intersects(other.boundingVolume)) {
+//                    potentialCollisions.add(new Pair<>(object, other));
+////                    object.applyGravity(other);
+//                    object.color = Color.GREEN;
+//                } else {
+//                    object.color = Color.YELLOW;
+//                }
+
         }
         return potentialCollisions;
     }
@@ -323,23 +351,6 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         return shader;
     }
 
-
-
-    public synchronized void speedUpSimulation() {
-        synchronized (objects) {
-            for (ObjectBlenderModel objectSphere : objects) {
-                objectSphere.speedUp();
-            }
-        }
-    }
-
-    public synchronized void speedDownSimulation() {
-        synchronized (objects) {
-            for (ObjectBlenderModel objectSphere : objects) {
-                objectSphere.speedDown();
-            }
-        }
-    }
 
     public synchronized void resetAnimation() {
         synchronized (objects) {

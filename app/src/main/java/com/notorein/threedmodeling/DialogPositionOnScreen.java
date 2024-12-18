@@ -88,9 +88,8 @@ public class DialogPositionOnScreen {
             @Override
             public void onClick(View v) {
                 if (selectedBody != null) {
-//                    setBodyPosition = false;
                     float size = sbSize.getProgress() / 100.0f;
-                    selectedBody.setSize(size);
+                    selectedBody.size = size;
                     Toast.makeText(context, "Body Size Set", Toast.LENGTH_SHORT).show();
                     activityMain.getDialogCelestialSphereChooser().setVisible(true);
                     activityMain.getDialogCelestialSphereValues().setVisible(true);
@@ -144,12 +143,12 @@ public class DialogPositionOnScreen {
 
     public void setSelectedBodyValues() {
         if (selectedBody != null) {
-            tvPlanetName.setText(selectedBody.getName());
-            tvCoordinatesX.setText("X: " + selectedBody.getX());
-            tvCoordinatesY.setText("Y: " + selectedBody.getY());
-            tvCoordinatesZ.setText("Z: " + selectedBody.getZ());
-            tvSize.setText("Size: " + selectedBody.getSize());
-            sbSize.setProgress((int) (selectedBody.getSize() * 100)); // Assuming size is between 0 and 1
+            tvPlanetName.setText(selectedBody.name);
+            tvCoordinatesX.setText("X: " + selectedBody.position.x);
+            tvCoordinatesY.setText("Y: " + selectedBody.position.y);
+            tvCoordinatesZ.setText("Z: " + selectedBody.position.z);
+            tvSize.setText("Size: " + selectedBody.size);
+            sbSize.setProgress((int) (selectedBody.size * 100)); // Assuming size is between 0 and 1
         }
     }
 
