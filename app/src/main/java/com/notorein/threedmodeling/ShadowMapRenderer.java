@@ -182,9 +182,12 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
                 pair.first.updateColorBuffer(object.color);
                 pair.second.color = Color.GREEN;
                 pair.second.updateColorBuffer(other.color);
-                if (object.detectCollision(other)) {
-                    object.handleCollision(other);
+                if (object.boundingVolume.intersects(other.boundingVolume)) {
+                    if (object.detectCollision(other)) {
+                        object.handleCollision(other);
+                    }
                 }
+
             }
             // Update positions for all objects
             for (ObjectBlenderModel object : objects) {
@@ -204,12 +207,8 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
 
                 Log.i(TAG, "broadPhaseCollisionDetection: magintude " + object.worldBoundingVolumeCenter.subtract(other.worldBoundingVolumeCenter).magnitude());
                 if (object.worldBoundingVolumeCenter.subtract(other.worldBoundingVolumeCenter).magnitude() < (object.size + other.size) * 1.5) {
-//                        potentialCollisions.add(new Pair<>(object, other));
                     potentialCollisions.add(new Pair<>(object, other));
-                    ;
-
-                }
-                else {
+                } else {
 
                     object.color = object.colorInitial;
                     object.updateColorBuffer(object.colorInitial);
