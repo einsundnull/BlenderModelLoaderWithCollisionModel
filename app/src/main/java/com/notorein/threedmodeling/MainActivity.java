@@ -300,14 +300,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     public List<ObjectBlenderModel> initObjects() {
         objects = new ArrayList<>();
-        objects.add(new ObjectBlenderModel(context, 1, new Vector3D(0, -400, 800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), 1000, Color.BLUE, 100, true, false, true, true, true, "Plane", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-600, 0, 800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 100, false, false, true, true, true, "CHECK", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(600, 0, 800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-600, 800, 800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 100, false, false, true, true, true, "CHECK", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(600, 0, -800), new Vector3D(0, 0, 0), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
+
+        // Add initial objects
+        objects.add(new ObjectBlenderModel(context, 1, new Vector3D(-1200, 0, 1800), new Vector3D(0, 0, 0), 1000, Color.BLUE, 100, true, false, true, true, true, "Plane", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-600, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 100, false, false, true, true, true, "CHECK", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(0, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(600, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 100, false, false, true, true, true, "CHECK", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(1200, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
+
+        // Define the central point and radius
+        Vector3D center = new Vector3D(0, 0, 1800);
+        double radius = 600; // Radius of the sphere
+
+        // Define the number of cubes and the colors
+        int numCubes = 15;
+        int[] colors = {Color.GREEN, Color.YELLOW, Color.CYAN, Color.GRAY, Color.DKGRAY, Color.LTGRAY, Color.BLUE, Color.MAGENTA, Color.RED, Color.WHITE, Color.BLACK, Color.RED, Color.WHITE, Color.DKGRAY, Color.MAGENTA};
+
+        // Add cubes in a spherical shape
+        for (int i = 0; i < numCubes; i++) {
+            // Calculate spherical coordinates
+            double theta = 2 * Math.PI * i / numCubes; // Azimuthal angle
+            double phi = Math.acos(1 - 2 * (i + 1) / (numCubes + 1)); // Polar angle
+
+            // Calculate Cartesian coordinates
+            double x = center.x + radius * Math.sin(phi) * Math.cos(theta);
+            double y = center.y + radius * Math.sin(phi) * Math.sin(theta);
+            double z = center.z + radius * Math.cos(phi);
+
+            // Create and add the cube
+            objects.add(new ObjectBlenderModel(context, i + 5, new Vector3D(x, y, z), new Vector3D(0, 0, 0),  ObjectInitData.Sun.MASS, colors[i], 100, false, false, true, true, true, "Cube" + i, "cyl"));
+        }
 
         return objects;
     }
+
 
 
     private void initDialogs() {

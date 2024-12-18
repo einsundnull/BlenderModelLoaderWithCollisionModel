@@ -1,7 +1,5 @@
 package com.notorein.threedmodeling;
 
-import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
-
 import android.content.Context;
 import android.graphics.Color;
 import android.opengl.GLES20;
@@ -15,20 +13,19 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-public class ShadowMapRenderer implements GLSurfaceView.Renderer {
+public class ShadowMapRendererIII implements GLSurfaceView.Renderer {
+
 
     private final int height;
     private final int width;
     private int shadowMapFBO;
     private int shadowMapTexture;
     private int shadowProgram, sceneProgram;
+
 
     private final float[] lightProjectionMatrix = new float[16];
     private final float[] lightViewMatrix = new float[16];
@@ -66,7 +63,8 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         return shaderSource.toString();
     }
 
-    public ShadowMapRenderer(Context context, MainActivity activityMain, List<ObjectBlenderModel> objects, int screenWidth, int screenHeight) {
+
+    public ShadowMapRendererIII(Context context, MainActivity activityMain, List<ObjectBlenderModel> objects, int screenWidth, int screenHeight) {
         this.objects = objects;
         this.context = context;
         this.activityMain = activityMain;
@@ -90,7 +88,10 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         shadowProgram = loadShaderProgram(vertexShaderCode, shadowFragmentShaderCode);
         sceneProgram = loadShaderProgram(vertexShaderCode, sceneFragmentShaderCode);
 
+        // Enable lighting and set light properties
         activityMain.getObjectLightSource().enableLight(gl);
+
+        // Set material properties
         activityMain.getObjectLightSource().setMaterialProperties(gl);
     }
 
@@ -98,19 +99,24 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         GLES20.glViewport(0, 0, this.width, this.height);
 
+        // Set up the projection matrix
         float ratio = (float) width / height;
         Matrix.perspectiveM(projectionMatrix, 0, 45, ratio, 0.1f, 1000000.0f);
 
+        // Apply camera transformations using matrix operations
         Matrix.setLookAtM(viewMatrix, 0, cameraPosX, cameraPosY, cameraPosZ, 0, 0, 0, 0, 1, 0);
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
 
+        // Rotate the view matrix
         Matrix.rotateM(viewMatrix, 0, cameraAngleX, 1.0f, 0.0f, 0.0f);
         Matrix.rotateM(viewMatrix, 0, cameraAngleY, 0.0f, 1.0f, 0.0f);
     }
 
+
     @Override
     public void onDrawFrame(GL10 gl) {
         synchronized (activityMain) {
+            // Apply the pitch and yaw adjustments
             Matrix.rotateM(viewMatrix, 0, cameraPitch, 1, 0, 0);
             Matrix.rotateM(viewMatrix, 0, cameraYaw, 0, 1, 0);
             cameraPosX = activityMain.getCameraPosX();
@@ -120,12 +126,15 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
             cameraAngleX = activityMain.getCameraAngleX();
             cameraAngleY = activityMain.getCameraAngleY();
 
+            // Apply camera transformations using matrix operations
             Matrix.setLookAtM(viewMatrix, 0, cameraPosX, cameraPosY, cameraPosZ, 0, 0, 0, 0, 1, 0);
             Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
 
+            // Rotate the view matrix
             Matrix.rotateM(viewMatrix, 0, cameraAngleX, 1.0f, 0.0f, 0.0f);
             Matrix.rotateM(viewMatrix, 0, cameraAngleY, 0.0f, 1.0f, 0.0f);
 
+            // Enable the light source
             objectLightSource.enableLight(gl);
 
             if (!activityMain.isPause()) {
@@ -138,23 +147,14 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     }
 
     private void updateObjects() {
-        ExecutorService executor = Executors.newFixedThreadPool(4);
-        for (ObjectBlenderModel object : objects) {
-            executor.submit(() -> {
-                object.updatePosition();
-            });
-        }
-        executor.shutdown();
-        try {
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
         synchronized (objects) {
+            // Broad phase collision detection
             potentialCollisions = broadPhaseCollisionDetection();
 
+            // Narrow phase collision detection and response
             synchronized (potentialCollisions) {
+
+
                 for (Pair<ObjectBlenderModel, ObjectBlenderModel> pair : potentialCollisions) {
                     ObjectBlenderModel object = pair.first;
                     ObjectBlenderModel other = pair.second;
@@ -194,11 +194,14 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
                 for (ObjectBlenderModel other : objects) {
                     if (object != other) {
                         object.applyGravity(other);
+                        // Calculate the world bounding volume centers
                         Vector3D worldBoundingVolumeCenter1 = object.boundingVolume.min.add(object.boundingVolume.max).scale(0.5).add(object.position);
                         Vector3D worldBoundingVolumeCenter2 = other.boundingVolume.min.add(other.boundingVolume.max).scale(0.5).add(other.position);
 
+                        // Calculate the distance between the centers
                         double distance = worldBoundingVolumeCenter1.subtract(worldBoundingVolumeCenter2).magnitude();
 
+                        // Check for potential collision
                         if (distance < (object.size + other.size) * 1.5) {
                             potentialCollisions.add(new Pair<>(object, other));
                         }
@@ -208,6 +211,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
             return potentialCollisions;
         }
     }
+
 
     private void initShadowMap() {
         int[] fbo = new int[1];
@@ -267,36 +271,41 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         drawScene(sceneProgram, mvpMatrix, viewMatrix, projectionMatrix);
     }
 
-    private void drawScene(int program, float[] mvpMatrix, float[] viewMatrix, float[] projectionMatrix) {
+
+    private void drawScene(int program,
+                           float[] mvpMatrix, float[] viewMatrix,
+                           float[] projectionMatrix) {
+        // Bind attributes, uniforms, and draw geometry
         synchronized (objects) {
             for (ObjectBlenderModel object : objects) {
-                if (isInFrustum(object.position, (float) object.size)) {
-                    int aPositionLocation = GLES20.glGetAttribLocation(program, "a_Position");
-                    int aNormalLocation = GLES20.glGetAttribLocation(program, "a_Normal");
-                    int aColorLocation = GLES20.glGetAttribLocation(program, "a_Color");
-                    int uMVPMatrixLocation = GLES20.glGetUniformLocation(program, "u_MVPMatrix");
-                    int uModelMatrixLocation = GLES20.glGetUniformLocation(program, "u_ModelMatrix");
+                // Get attribute and uniform locations from .glsl files in the main/assets/shaders folder
+                int aPositionLocation = GLES20.glGetAttribLocation(program, "a_Position");
+                int aNormalLocation = GLES20.glGetAttribLocation(program, "a_Normal");
+                int aColorLocation = GLES20.glGetAttribLocation(program, "a_Color");
+                int uMVPMatrixLocation = GLES20.glGetUniformLocation(program, "u_MVPMatrix");
+                int uModelMatrixLocation = GLES20.glGetUniformLocation(program, "u_ModelMatrix");
 
-                    GLES20.glEnableVertexAttribArray(aPositionLocation);
-                    GLES20.glEnableVertexAttribArray(aNormalLocation);
-                    GLES20.glEnableVertexAttribArray(aColorLocation);
+                GLES20.glEnableVertexAttribArray(aPositionLocation);
+                GLES20.glEnableVertexAttribArray(aNormalLocation);
+                GLES20.glEnableVertexAttribArray(aColorLocation);
 
-                    object.drawObject(program, mvpMatrix, viewMatrix, projectionMatrix);
+                // Draw all objects
+                object.drawObject(program, mvpMatrix, viewMatrix, projectionMatrix);
+                // Draw all bounding volumes
+//                if (ObjectBlenderModel.drawBoundingVolume) {
+//                    object.drawBoundingVolume(program, mvpMatrix, viewMatrix, projectionMatrix);
+//                }
 
-                    GLES20.glDisableVertexAttribArray(aPositionLocation);
-                    GLES20.glDisableVertexAttribArray(aNormalLocation);
-                    GLES20.glDisableVertexAttribArray(aColorLocation);
-                }
+                GLES20.glDisableVertexAttribArray(aPositionLocation);
+                GLES20.glDisableVertexAttribArray(aNormalLocation);
+                GLES20.glDisableVertexAttribArray(aColorLocation);
             }
         }
     }
 
-    private boolean isInFrustum(Vector3D position, float radius) {
-        // Implement frustum culling logic here
-        return true; // Placeholder
-    }
 
-    private int loadShaderProgram(String vertexShaderCode, String fragmentShaderCode) {
+    private int loadShaderProgram
+            (String vertexShaderCode, String fragmentShaderCode) {
         int vertexShader = compileShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode);
         int fragmentShader = compileShader(GLES20.GL_FRAGMENT_SHADER, fragmentShaderCode);
 
@@ -314,7 +323,8 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         return program;
     }
 
-    private int compileShader(int type, String shaderCode) {
+    private int compileShader(
+            int type, String shaderCode) {
         int shader = GLES20.glCreateShader(type);
         GLES20.glShaderSource(shader, shaderCode);
         GLES20.glCompileShader(shader);
@@ -328,7 +338,9 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         return shader;
     }
 
-    public synchronized void resetAnimation() {
+
+    public synchronized void resetAnimation
+            () {
         synchronized (objects) {
             for (ObjectBlenderModel object : objects) {
                 object.reset();

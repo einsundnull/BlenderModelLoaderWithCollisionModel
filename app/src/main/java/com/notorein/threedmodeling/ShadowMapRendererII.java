@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
+import android.util.Log;
 import android.util.Pair;
 
 import java.io.BufferedReader;
@@ -15,20 +16,19 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
-public class ShadowMapRenderer implements GLSurfaceView.Renderer {
+public class ShadowMapRendererII implements GLSurfaceView.Renderer {
+
 
     private final int height;
     private final int width;
     private int shadowMapFBO;
     private int shadowMapTexture;
     private int shadowProgram, sceneProgram;
+
 
     private final float[] lightProjectionMatrix = new float[16];
     private final float[] lightViewMatrix = new float[16];
@@ -48,7 +48,6 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
 
     private float cameraYaw, cameraPitch;
     private float eyeX, eyeY, eyeZ, lookX, lookY, lookZ, upX, upY, upZ;
-    private List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions;
 
     public static String loadShader(Context context, String shaderFileName) {
         StringBuilder shaderSource = new StringBuilder();
@@ -66,7 +65,8 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         return shaderSource.toString();
     }
 
-    public ShadowMapRenderer(Context context, MainActivity activityMain, List<ObjectBlenderModel> objects, int screenWidth, int screenHeight) {
+
+    public ShadowMapRendererII(Context context, MainActivity activityMain, List<ObjectBlenderModel> objects, int screenWidth, int screenHeight) {
         this.objects = objects;
         this.context = context;
         this.activityMain = activityMain;
@@ -90,7 +90,10 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         shadowProgram = loadShaderProgram(vertexShaderCode, shadowFragmentShaderCode);
         sceneProgram = loadShaderProgram(vertexShaderCode, sceneFragmentShaderCode);
 
+        // Enable lighting and set light properties
         activityMain.getObjectLightSource().enableLight(gl);
+
+        // Set material properties
         activityMain.getObjectLightSource().setMaterialProperties(gl);
     }
 
@@ -98,19 +101,24 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         GLES20.glViewport(0, 0, this.width, this.height);
 
+        // Set up the projection matrix
         float ratio = (float) width / height;
         Matrix.perspectiveM(projectionMatrix, 0, 45, ratio, 0.1f, 1000000.0f);
 
+        // Apply camera transformations using matrix operations
         Matrix.setLookAtM(viewMatrix, 0, cameraPosX, cameraPosY, cameraPosZ, 0, 0, 0, 0, 1, 0);
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
 
+        // Rotate the view matrix
         Matrix.rotateM(viewMatrix, 0, cameraAngleX, 1.0f, 0.0f, 0.0f);
         Matrix.rotateM(viewMatrix, 0, cameraAngleY, 0.0f, 1.0f, 0.0f);
     }
 
+
     @Override
     public void onDrawFrame(GL10 gl) {
         synchronized (activityMain) {
+            // Apply the pitch and yaw adjustments
             Matrix.rotateM(viewMatrix, 0, cameraPitch, 1, 0, 0);
             Matrix.rotateM(viewMatrix, 0, cameraYaw, 0, 1, 0);
             cameraPosX = activityMain.getCameraPosX();
@@ -120,12 +128,15 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
             cameraAngleX = activityMain.getCameraAngleX();
             cameraAngleY = activityMain.getCameraAngleY();
 
+            // Apply camera transformations using matrix operations
             Matrix.setLookAtM(viewMatrix, 0, cameraPosX, cameraPosY, cameraPosZ, 0, 0, 0, 0, 1, 0);
             Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
 
+            // Rotate the view matrix
             Matrix.rotateM(viewMatrix, 0, cameraAngleX, 1.0f, 0.0f, 0.0f);
             Matrix.rotateM(viewMatrix, 0, cameraAngleY, 0.0f, 1.0f, 0.0f);
 
+            // Enable the light source
             objectLightSource.enableLight(gl);
 
             if (!activityMain.isPause()) {
@@ -137,76 +148,86 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         renderScene();
     }
 
+
+    //    private void updateObjects() {
+//        synchronized (objects) {
+//            // Broad phase collision detection
+//            for (int i = 0; i < objects.size(); i++) {
+//                ObjectBlenderModel object = objects.get(i);
+//                for (int j = i + 1; j < objects.size(); j++) {
+//                    ObjectBlenderModel other = objects.get(j);
+//                    object.applyGravity(other);
+//                    if (object.boundingVolume.intersects(other.boundingVolume)) {
+//                        object.handleCollision(other);
+//
+//                    }
+//                }
+//            }
+//            // Update positions for all objects
+//            for (ObjectBlenderModel object : objects) {
+//                object.updatePosition();
+//            }
+//        }
+//    }
     private void updateObjects() {
-        ExecutorService executor = Executors.newFixedThreadPool(4);
-        for (ObjectBlenderModel object : objects) {
-            executor.submit(() -> {
-                object.updatePosition();
-            });
-        }
-        executor.shutdown();
-        try {
-            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
         synchronized (objects) {
-            potentialCollisions = broadPhaseCollisionDetection();
 
-            synchronized (potentialCollisions) {
-                for (Pair<ObjectBlenderModel, ObjectBlenderModel> pair : potentialCollisions) {
-                    ObjectBlenderModel object = pair.first;
-                    ObjectBlenderModel other = pair.second;
+            // Broad phase collision detection
+            List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions = broadPhaseCollisionDetection();
+            // Narrow phase collision detection and response
+            for (Pair<ObjectBlenderModel, ObjectBlenderModel> pair : potentialCollisions) {
+                ObjectBlenderModel object = pair.first;
+                ObjectBlenderModel other = pair.second;
+                pair.first.color = Color.GREEN;
+                pair.first.updateColorBuffer(object.color);
+                pair.second.color = Color.GREEN;
+                pair.second.updateColorBuffer(other.color);
+                object.handleCollision(other);
+//                if (object.boundingVolume.intersects(other.boundingVolume)) {
+//                    if (object.detectCollision(other)) {
+//                        object.handleCollision(other);
+//                    }
+//                }
 
-                    double distance = object.position.subtract(other.position).magnitude();
-                    double size = object.size + other.size;
+            }
+            // Update positions for all objects
+            for (ObjectBlenderModel object : objects) {
 
-                    if (distance <= size * 1.2) {
-                        synchronized (object) {
-                            synchronized (other) {
-                                object.color = Color.GREEN;
-                                object.updateColorBuffer(object.color);
-                                other.color = Color.GREEN;
-                                other.updateColorBuffer(other.color);
-                                object.handleCollision(other);
-                            }
-                        }
-                    } else {
-                        synchronized (object) {
-                            synchronized (other) {
-                                object.color = object.colorInitial;
-                                object.updateColorBuffer(object.colorInitial);
-                                other.color = other.colorInitial;
-                                other.updateColorBuffer(other.colorInitial);
-                            }
-                        }
-                    }
-                }
+                object.updatePosition();
             }
         }
     }
 
     private List<Pair<ObjectBlenderModel, ObjectBlenderModel>> broadPhaseCollisionDetection() {
         List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions = new ArrayList<>();
-        synchronized (objects) {
-            for (ObjectBlenderModel object : objects) {
-                for (ObjectBlenderModel other : objects) {
-                    if (object != other) {
-                        object.applyGravity(other);
-                        Vector3D worldBoundingVolumeCenter1 = object.boundingVolume.min.add(object.boundingVolume.max).scale(0.5).add(object.position);
-                        Vector3D worldBoundingVolumeCenter2 = other.boundingVolume.min.add(other.boundingVolume.max).scale(0.5).add(other.position);
+        for (int i = 0; i < objects.size(); i++) {
+            ObjectBlenderModel object = objects.get(i);
+            for (int j = i + 1; j < objects.size(); j++) {
+                ObjectBlenderModel other = objects.get(j);
+                object.applyGravity(other);
 
-                        double distance = worldBoundingVolumeCenter1.subtract(worldBoundingVolumeCenter2).magnitude();
+                Log.i(TAG, "broadPhaseCollisionDetection: magintude " + object.worldBoundingVolumeCenter.subtract(other.worldBoundingVolumeCenter).magnitude());
+                if (object.worldBoundingVolumeCenter.subtract(other.worldBoundingVolumeCenter).magnitude() < (object.size + other.size) * 1.5) {
+                    potentialCollisions.add(new Pair<>(object, other));
+                } else {
 
-                        if (distance < (object.size + other.size) * 1.5) {
-                            potentialCollisions.add(new Pair<>(object, other));
-                        }
-                    }
+                    object.color = object.colorInitial;
+                    object.updateColorBuffer(object.colorInitial);
+                    other.color = other.colorInitial;
+                    other.updateColorBuffer(other.colorInitial);
                 }
             }
-            return potentialCollisions;
+
+//                if (object.boundingVolume.intersects(other.boundingVolume)) {
+//                    potentialCollisions.add(new Pair<>(object, other));
+////                    object.applyGravity(other);
+//                    object.color = Color.GREEN;
+//                } else {
+//                    object.color = Color.YELLOW;
+//                }
+
         }
+        return potentialCollisions;
     }
 
     private void initShadowMap() {
@@ -220,12 +241,14 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         shadowMapTexture = texture[0];
 
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, shadowMapTexture);
-        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_DEPTH_COMPONENT, width, height, 0, GLES20.GL_DEPTH_COMPONENT, GLES20.GL_UNSIGNED_INT, null);
+        GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_DEPTH_COMPONENT, width, height, 0,
+                GLES20.GL_DEPTH_COMPONENT, GLES20.GL_UNSIGNED_INT, null);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
         GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
 
         GLES20.glBindFramebuffer(GLES20.GL_FRAMEBUFFER, shadowMapFBO);
-        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_DEPTH_ATTACHMENT, GLES20.GL_TEXTURE_2D, shadowMapTexture, 0);
+        GLES20.glFramebufferTexture2D(GLES20.GL_FRAMEBUFFER, GLES20.GL_DEPTH_ATTACHMENT,
+                GLES20.GL_TEXTURE_2D, shadowMapTexture, 0);
 
         if (GLES20.glCheckFramebufferStatus(GLES20.GL_FRAMEBUFFER) != GLES20.GL_FRAMEBUFFER_COMPLETE) {
             throw new RuntimeException("Framebuffer not complete");
@@ -267,34 +290,36 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         drawScene(sceneProgram, mvpMatrix, viewMatrix, projectionMatrix);
     }
 
+
     private void drawScene(int program, float[] mvpMatrix, float[] viewMatrix, float[] projectionMatrix) {
+        // Bind attributes, uniforms, and draw geometry
         synchronized (objects) {
             for (ObjectBlenderModel object : objects) {
-                if (isInFrustum(object.position, (float) object.size)) {
-                    int aPositionLocation = GLES20.glGetAttribLocation(program, "a_Position");
-                    int aNormalLocation = GLES20.glGetAttribLocation(program, "a_Normal");
-                    int aColorLocation = GLES20.glGetAttribLocation(program, "a_Color");
-                    int uMVPMatrixLocation = GLES20.glGetUniformLocation(program, "u_MVPMatrix");
-                    int uModelMatrixLocation = GLES20.glGetUniformLocation(program, "u_ModelMatrix");
+                // Get attribute and uniform locations from .glsl files in the main/assets/shaders folder
+                int aPositionLocation = GLES20.glGetAttribLocation(program, "a_Position");
+                int aNormalLocation = GLES20.glGetAttribLocation(program, "a_Normal");
+                int aColorLocation = GLES20.glGetAttribLocation(program, "a_Color");
+                int uMVPMatrixLocation = GLES20.glGetUniformLocation(program, "u_MVPMatrix");
+                int uModelMatrixLocation = GLES20.glGetUniformLocation(program, "u_ModelMatrix");
 
-                    GLES20.glEnableVertexAttribArray(aPositionLocation);
-                    GLES20.glEnableVertexAttribArray(aNormalLocation);
-                    GLES20.glEnableVertexAttribArray(aColorLocation);
+                GLES20.glEnableVertexAttribArray(aPositionLocation);
+                GLES20.glEnableVertexAttribArray(aNormalLocation);
+                GLES20.glEnableVertexAttribArray(aColorLocation);
 
-                    object.drawObject(program, mvpMatrix, viewMatrix, projectionMatrix);
+                // Draw all objects
+                object.drawObject(program, mvpMatrix, viewMatrix, projectionMatrix);
+                // Draw all bounding volumes
+//                if (ObjectBlenderModel.drawBoundingVolume) {
+//                    object.drawBoundingVolume(program, mvpMatrix, viewMatrix, projectionMatrix);
+//                }
 
-                    GLES20.glDisableVertexAttribArray(aPositionLocation);
-                    GLES20.glDisableVertexAttribArray(aNormalLocation);
-                    GLES20.glDisableVertexAttribArray(aColorLocation);
-                }
+                GLES20.glDisableVertexAttribArray(aPositionLocation);
+                GLES20.glDisableVertexAttribArray(aNormalLocation);
+                GLES20.glDisableVertexAttribArray(aColorLocation);
             }
         }
     }
 
-    private boolean isInFrustum(Vector3D position, float radius) {
-        // Implement frustum culling logic here
-        return true; // Placeholder
-    }
 
     private int loadShaderProgram(String vertexShaderCode, String fragmentShaderCode) {
         int vertexShader = compileShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode);
@@ -327,6 +352,7 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
 
         return shader;
     }
+
 
     public synchronized void resetAnimation() {
         synchronized (objects) {
