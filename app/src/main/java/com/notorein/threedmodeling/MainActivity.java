@@ -22,6 +22,8 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.GestureDetectorCompat;
 
+import com.notorein.threedmodeling.utils.Vector3D;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private ScaleGestureDetector scaleGestureDetector;
     private List<ObjectBlenderModel> objects;
     private int indexOfSelectedSphereToFollow = 3;
-
+   private View strafeForward,strafeBackward,strafeLeft,strafeRight;
 
     private SensorManager sensorManager;
     private Sensor accelerometer;
@@ -230,9 +232,64 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         tvPositionXOnScreen = findViewById(R.id.tv_position_x_on_screen);
         tvPositionYOnScreen = findViewById(R.id.tv_position_y_on_screen);
         tvPositionZOnScreen = findViewById(R.id.tv_position_z_on_screen);
+
+        strafeForward = findViewById(R.id.strafeForward);
+        strafeBackward = findViewById(R.id.strafeBackward);
+        strafeLeft = findViewById(R.id.strafeLeft);
+        strafeRight = findViewById(R.id.strafeRight);
     }
 
     private void initOnClickListeners() {
+        strafeForward.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+//                    shadowMapRenderer.setStrafeDirection(0, 0, -10000); // Strafe forward
+                    cameraPosZ += 1000;
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    shadowMapRenderer.setStrafeDirection(0, 0, 0); // Stop strafing
+                }
+                return true;
+            }
+        });
+
+        strafeBackward.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    cameraPosZ -= 1000;
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    shadowMapRenderer.setStrafeDirection(0, 0, 0); // Stop strafing
+                }
+                return true;
+            }
+        });
+
+        strafeLeft.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    cameraPosX -= 1000;
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    shadowMapRenderer.setStrafeDirection(0, 0, 0); // Stop strafing
+                }
+                return true;
+            }
+        });
+
+        strafeRight.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    cameraPosX += 1000;
+                } else if (event.getAction() == MotionEvent.ACTION_UP) {
+                    shadowMapRenderer.setStrafeDirection(0, 0, 0); // Stop strafing
+                }
+                return true;
+            }
+        });
+
+
         menuButton.setOnClickListener(v -> {
             if (!pause) {
                 togglePause();
@@ -302,34 +359,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         objects = new ArrayList<>();
 
         // Add initial objects
-        objects.add(new ObjectBlenderModel(context, 1, new Vector3D(-1200, 0, 1800), new Vector3D(0, 0, 0), 1000, Color.BLUE, 100, true, false, true, true, true, "Plane", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-600, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 100, false, false, true, true, true, "CHECK", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(0, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(600, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 100, false, false, true, true, true, "CHECK", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(1200, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 100, false, false, true, true, true, "CUP", "cyl"));
-
+        objects.add(new ObjectBlenderModel(context, 1, new Vector3D(-1200, 0, 1800), new Vector3D(0, 0, 0), 1000, Color.BLUE, 100, false, true, true, true, true, "Plane", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-600, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 100, false, true, true, true, true, "CHECK", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(0, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 300, false, true, true, true, true, "CUP", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(600, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 100, false, true, true, true, true, "CHECK", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(0, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 100, false, true, true, true, true, "CUP", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(0, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 100, false, true, true, true, true, "CUP", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(-110, -8000, 8000), new Vector3D(0, 0, 0), 8000000, Color.RED, 700, true, false, true, true, true, "CUP", "palneiii"));
         // Define the central point and radius
-        Vector3D center = new Vector3D(0, 0, 1800);
-        double radius = 600; // Radius of the sphere
-
-        // Define the number of cubes and the colors
-        int numCubes = 15;
-        int[] colors = {Color.GREEN, Color.YELLOW, Color.CYAN, Color.GRAY, Color.DKGRAY, Color.LTGRAY, Color.BLUE, Color.MAGENTA, Color.RED, Color.WHITE, Color.BLACK, Color.RED, Color.WHITE, Color.DKGRAY, Color.MAGENTA};
-
-        // Add cubes in a spherical shape
-        for (int i = 0; i < numCubes; i++) {
-            // Calculate spherical coordinates
-            double theta = 2 * Math.PI * i / numCubes; // Azimuthal angle
-            double phi = Math.acos(1 - 2 * (i + 1) / (numCubes + 1)); // Polar angle
-
-            // Calculate Cartesian coordinates
-            double x = center.x + radius * Math.sin(phi) * Math.cos(theta);
-            double y = center.y + radius * Math.sin(phi) * Math.sin(theta);
-            double z = center.z + radius * Math.cos(phi);
-
-            // Create and add the cube
-            objects.add(new ObjectBlenderModel(context, i + 5, new Vector3D(x, y, z), new Vector3D(0, 0, 0),  ObjectInitData.Sun.MASS, colors[i], 100, false, false, true, true, true, "Cube" + i, "cyl"));
-        }
+//        Vector3D center = new Vector3D(0, 0, 1800);
+//        double radius = 600; // Radius of the sphere
+//
+//        // Define the number of cubes and the colors
+//        int numCubes = 15;
+//        int[] colors = {Color.GREEN, Color.YELLOW, Color.CYAN, Color.GRAY, Color.DKGRAY, Color.LTGRAY, Color.BLUE, Color.MAGENTA, Color.RED, Color.WHITE, Color.BLACK, Color.RED, Color.WHITE, Color.DKGRAY, Color.MAGENTA};
+//
+//        // Add cubes in a spherical shape
+//        for (int i = 0; i < numCubes; i++) {
+//            // Calculate spherical coordinates
+//            double theta = 2 * Math.PI * i / numCubes; // Azimuthal angle
+//            double phi = Math.acos(1 - 2 * (i + 1) / (numCubes + 1)); // Polar angle
+//
+//            // Calculate Cartesian coordinates
+//            double x = center.x + radius * Math.sin(phi) * Math.cos(theta);
+//            double y = center.y + radius * Math.sin(phi) * Math.sin(theta);
+//            double z = center.z + radius * Math.cos(phi);
+//
+//            // Create and add the cube
+//            objects.add(new ObjectBlenderModel(context, i + 5, new Vector3D(x, y, z), new Vector3D(0, 0, 0),  ObjectInitData.Sun.MASS, colors[i], 100, false, true, true, true, true, "Cube" + i, "cyl"));
+//        }
 
         return objects;
     }

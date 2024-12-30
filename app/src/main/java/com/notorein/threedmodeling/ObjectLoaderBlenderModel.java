@@ -2,6 +2,9 @@ package com.notorein.threedmodeling;
 
 import android.content.Context;
 
+
+import com.notorein.threedmodeling.utils.Vector3D;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -17,7 +20,7 @@ public class ObjectLoaderBlenderModel {
     private FloatBuffer normalBuffer;
     private ShortBuffer indexBuffer;
     private int numIndices;
-    public float[] vertexArray,normalArray;
+    public float[] vertexArray, normalArray;
     public short[] indexArray;
 
     public void loadObjModel(Context context, String objFileName, int color, ObjectLoaderTriangle objectLoaderTriangle) {
@@ -27,7 +30,7 @@ public class ObjectLoaderBlenderModel {
 
 
         vertexArray = new float[verticesObjModel.size() * 3];
-     normalArray = new float[normalsObjModel.size() * 3];
+        normalArray = new float[normalsObjModel.size() * 3];
         indexArray = new short[collisionModelTriangles.size() * 3];
 
         for (int i = 0; i < verticesObjModel.size(); i++) {

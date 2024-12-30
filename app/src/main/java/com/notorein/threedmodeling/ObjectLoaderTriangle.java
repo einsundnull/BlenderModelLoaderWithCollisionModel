@@ -4,6 +4,9 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.util.Log;
 
+import com.notorein.threedmodeling.utils.Vector2D;
+import com.notorein.threedmodeling.utils.Vector3D;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;

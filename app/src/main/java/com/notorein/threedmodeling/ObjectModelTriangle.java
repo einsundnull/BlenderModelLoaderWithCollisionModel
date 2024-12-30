@@ -1,5 +1,8 @@
 package com.notorein.threedmodeling;
 
+import com.notorein.threedmodeling.utils.Vector2D;
+import com.notorein.threedmodeling.utils.Vector3D;
+
 public class ObjectModelTriangle {
     private Vector3D v0;
     private Vector3D v1;
@@ -52,45 +55,46 @@ public class ObjectModelTriangle {
     }
 
     public boolean intersects(ObjectModelTriangle other) {
-        return triangleTriangleIntersection(this, other);
+        return satIntersection(this, other);
     }
 
-    private  boolean triangleTriangleIntersection(ObjectModelTriangle t1, ObjectModelTriangle t2) {
-        Vector3D v0 = t1.v0;
-        Vector3D v1 = t1.v1;
-        Vector3D v2 = t1.v2;
-        Vector3D u0 = t2.v0;
-        Vector3D u1 = t2.v1;
-        Vector3D u2 = t2.v2;
+    private boolean satIntersection(ObjectModelTriangle t1, ObjectModelTriangle t2) {
+        Vector3D[] axes = {
+                t1.v1.subtract(t1.v0).cross(t1.v2.subtract(t1.v0)).normalize(),
+                t2.v1.subtract(t2.v0).cross(t2.v2.subtract(t2.v0)).normalize(),
+                t1.v1.subtract(t1.v0).cross(t2.v1.subtract(t2.v0)).normalize(),
+                t1.v1.subtract(t1.v0).cross(t2.v2.subtract(t2.v0)).normalize(),
+                t1.v2.subtract(t1.v0).cross(t2.v1.subtract(t2.v0)).normalize(),
+                t1.v2.subtract(t1.v0).cross(t2.v2.subtract(t2.v0)).normalize()
+        };
 
-        Vector3D e1 = v1.subtract(v0);
-        Vector3D e2 = v2.subtract(v0);
-        Vector3D n1 = e1.cross(e2);
-        double d = n1.dot(v0);
-
-        Vector3D e3 = u1.subtract(u0);
-        Vector3D e4 = u2.subtract(u0);
-        Vector3D n2 = e3.cross(e4);
-        double d2 = n2.dot(u0);
-
-        Vector3D dir = n1.cross(n2);
-        double denom = dir.dot(dir);
-
-        if (denom == 0.0) {
-            return false; // Triangles are parallel
+        for (Vector3D axis : axes) {
+            if (!projectAndCheck(t1, t2, axis)) {
+                return false;
+            }
         }
+        return true;
+    }
 
-        Vector3D diff = v0.subtract(u0);
-        double t = dir.dot(diff) / denom;
-        Vector3D p1 = v0.add(n1.scale(t));
+    private boolean projectAndCheck(ObjectModelTriangle t1, ObjectModelTriangle t2, Vector3D axis) {
+        double[] t1Projection = project(t1, axis);
+        double[] t2Projection = project(t2, axis);
 
-        double u = dir.dot(e3) / denom;
-        double v = dir.dot(e4) / denom;
+        return !(t1Projection[1] < t2Projection[0] || t2Projection[1] < t1Projection[0]);
+    }
 
-        if (u >= 0.0 && v >= 0.0 && (u + v) <= 1.0) {
-            return true;
-        }
+    private double[] project(ObjectModelTriangle triangle, Vector3D axis) {
+        double min = axis.dot(triangle.v0);
+        double max = min;
 
-        return false;
+        double projection = axis.dot(triangle.v1);
+        if (projection < min) min = projection;
+        if (projection > max) max = projection;
+
+        projection = axis.dot(triangle.v2);
+        if (projection < min) min = projection;
+        if (projection > max) max = projection;
+
+        return new double[]{min, max};
     }
 }

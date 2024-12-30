@@ -12,7 +12,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="gone" />
 
     <ImageView
         android:id="@+id/button_follow_unfollow"
@@ -209,13 +210,13 @@
     <!-- Add buttons to toggle tilt for each objectSphere -->
 
     <ImageView
-        android:id="@+id/button_toggle_tilt_sphere_0"
+        android:id="@+id/button_toggle_gravity"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toStartOf="@+id/button_use_constant_gravity"
         app:layout_constraintTop_toTopOf="@+id/button_use_constant_gravity"
-        app:srcCompat="@drawable/baseline_filter_tilt_shift_24" />
+        app:srcCompat="@drawable/ic_round_my_location_24" />
 
     <ImageView
         android:id="@+id/button_use_constant_gravity"
@@ -225,6 +226,46 @@
         app:layout_constraintEnd_toStartOf="@+id/button_toggle_tilt"
         app:layout_constraintTop_toTopOf="@+id/button_toggle_tilt"
         app:srcCompat="@drawable/baseline_arrow_circle_down_24" />
+
+    <ImageView
+        android:id="@+id/strafeForward"
+        android:layout_width="68dp"
+        android:layout_height="68dp"
+        android:layout_marginTop="75dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/round_arrow_drop_up_24" />
+
+    <ImageView
+        android:id="@+id/strafeLeft"
+        android:layout_width="68dp"
+        android:layout_height="68dp"
+        android:layout_marginStart="35dp"
+        app:layout_constraintBottom_toTopOf="@+id/button_add"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/round_arrow_left_24" />
+
+    <ImageView
+        android:id="@+id/strafeRight"
+        android:layout_width="68dp"
+        android:layout_height="68dp"
+        android:layout_marginEnd="35dp"
+        app:layout_constraintBottom_toTopOf="@+id/button_add"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/round_arrow_right_24" />
+
+    <ImageView
+        android:id="@+id/strafeBackward"
+        android:layout_width="68dp"
+        android:layout_height="68dp"
+        android:layout_marginBottom="75dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@drawable/round_arrow_drop_down_24" />
 
     <!-- Add more buttons for other objects as needed -->
 

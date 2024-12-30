@@ -10,13 +10,12 @@ import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.util.Log;
 
+import com.notorein.threedmodeling.utils.Vector3D;
+
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class ObjectBlenderModel {
     private final Context context;
@@ -47,7 +46,13 @@ public class ObjectBlenderModel {
     public int positionIndex;
     public double gravityStrength = 1;
     public int colorInitial;
-    CollisionModelAABB boundingVolume;
+
+    // Rotation angles around x, y, and z axes
+    public float rotationX = 0;
+    public float rotationY = 0;
+    public float rotationZ = 0;
+
+    ConvexShape boundingVolume;
     public boolean useConstantGravity = true;
     public static boolean drawBoundingVolume = true;
 
@@ -118,28 +123,29 @@ public class ObjectBlenderModel {
     }
 
     private void updateBoundingVolume() {
-        Vector3D min = new Vector3D(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
-        Vector3D max = new Vector3D(Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE);
-
+        List<Vector3D> vertices = new ArrayList<>();
         for (int i = 0; i < numIndices; i += 3) {
             Vector3D v0 = getVertex(indexBuffer.get(i));
             Vector3D v1 = getVertex(indexBuffer.get(i + 1));
             Vector3D v2 = getVertex(indexBuffer.get(i + 2));
-
-            min.x = Math.min(min.x, Math.min(Math.min(v0.x, v1.x), v2.x));
-            min.y = Math.min(min.y, Math.min(Math.min(v0.y, v1.y), v2.y));
-            min.z = Math.min(min.z, Math.min(Math.min(v0.z, v1.z), v2.z));
-            max.x = Math.max(max.x, Math.max(Math.max(v0.x, v1.x), v2.x));
-            max.y = Math.max(max.y, Math.max(Math.max(v0.y, v1.y), v2.y));
-            max.z = Math.max(max.z, Math.max(Math.max(v0.z, v1.z), v2.z));
+            vertices.add(v0);
+            vertices.add(v1);
+            vertices.add(v2);
         }
-
-        this.boundingVolume = new CollisionModelAABB(min, max);
+        this.boundingVolume = new ConvexShape(vertices);
     }
 
     private Vector3D getVertex(int index) {
         int vertexIndex = index * 3;
         return new Vector3D(vertexBuffer.get(vertexIndex), vertexBuffer.get(vertexIndex + 1), vertexBuffer.get(vertexIndex + 2));
+    }
+
+    private Vector3D getNormal(int index) {
+        int normalIndex = index * 3;
+        if (normalIndex + 2 >= normalBuffer.capacity()) {
+            throw new IndexOutOfBoundsException("Normal index out of bounds: " + normalIndex);
+        }
+        return new Vector3D(normalBuffer.get(normalIndex), normalBuffer.get(normalIndex + 1), normalBuffer.get(normalIndex + 2));
     }
 
     public void drawObject(int program, float[] mvpMatrix, float[] viewMatrix, float[] projectionMatrix) {
@@ -154,8 +160,13 @@ public class ObjectBlenderModel {
         Matrix.translateM(modelMatrix, 0, (float) position.x, (float) position.y, (float) position.z);
         Matrix.scaleM(modelMatrix, 0, (float) size, (float) size, (float) size);
 
+        // Apply rotations
+        Matrix.rotateM(modelMatrix, 0, rotationX, 1, 0, 0);
+        Matrix.rotateM(modelMatrix, 0, rotationY, 0, 1, 0);
+        Matrix.rotateM(modelMatrix, 0, rotationZ, 0, 0, 1);
+
         GLES20.glVertexAttribPointer(aPositionLocation, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
-        GLES20.glVertexAttribPointer(aNormalLocation, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
+        GLES20.glVertexAttribPointer(aNormalLocation, 3, GLES20.GL_FLOAT, false, 0, normalBuffer);
         GLES20.glVertexAttribPointer(aColorLocation, 4, GLES20.GL_FLOAT, false, 0, colorBuffer);
 
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
@@ -164,6 +175,51 @@ public class ObjectBlenderModel {
         GLES20.glUniformMatrix4fv(uModelMatrixLocation, 1, false, modelMatrix, 0);
 
         GLES20.glDrawElements(GLES20.GL_TRIANGLES, numIndices, GLES20.GL_UNSIGNED_SHORT, indexBuffer);
+    }
+
+    public void drawBoundingVolume(int program, float[] mvpMatrix, float[] viewMatrix, float[] projectionMatrix) {
+
+        int aPositionLocation = GLES20.glGetAttribLocation(program, "a_Position");
+        int aColorLocation = GLES20.glGetAttribLocation(program, "a_Color");
+        int uMVPMatrixLocation = GLES20.glGetUniformLocation(program, "u_MVPMatrix");
+
+        GLES20.glEnableVertexAttribArray(aPositionLocation);
+        GLES20.glEnableVertexAttribArray(aColorLocation);
+
+        float[] vertices = new float[]{
+                (float) boundingVolume.min.x, (float) boundingVolume.min.y, (float) boundingVolume.min.z,
+                (float) boundingVolume.max.x, (float) boundingVolume.min.y, (float) boundingVolume.min.z,
+                (float) boundingVolume.max.x, (float) boundingVolume.max.y, (float) boundingVolume.min.z,
+                (float) boundingVolume.min.x, (float) boundingVolume.max.y, (float) boundingVolume.min.z,
+                (float) boundingVolume.min.x, (float) boundingVolume.min.y, (float) boundingVolume.max.z,
+                (float) boundingVolume.max.x, (float) boundingVolume.min.y, (float) boundingVolume.max.z,
+                (float) boundingVolume.max.x, (float) boundingVolume.max.y, (float) boundingVolume.max.z,
+                (float) boundingVolume.min.x, (float) boundingVolume.max.y, (float) boundingVolume.max.z
+        };
+
+        float[] colors = color == Color.GREEN ? COLLISION_COLOR : DEFAULT_COLOR;
+
+        FloatBuffer vertexBuffer = createFloatBuffer(vertices);
+        FloatBuffer colorBuffer = createFloatBuffer(colors);
+
+        short[] indices = new short[]{
+                0, 1, 1, 2, 2, 3, 3, 0,
+                4, 5, 5, 6, 6, 7, 7, 4,
+                0, 4, 1, 5, 2, 6, 3, 7
+        };
+
+        ShortBuffer indexBuffer = createShortBuffer(indices);
+
+        if (!drawBoundingVolume) return;
+        GLES20.glVertexAttribPointer(aPositionLocation, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
+        GLES20.glVertexAttribPointer(aColorLocation, 4, GLES20.GL_FLOAT, false, 0, colorBuffer);
+
+        GLES20.glUniformMatrix4fv(uMVPMatrixLocation, 1, false, mvpMatrix, 0);
+
+        GLES20.glDrawElements(GLES20.GL_LINES, indices.length, GLES20.GL_UNSIGNED_SHORT, indexBuffer);
+
+        GLES20.glDisableVertexAttribArray(aPositionLocation);
+        GLES20.glDisableVertexAttribArray(aColorLocation);
     }
 
     public boolean detectCollision(ObjectBlenderModel other) {
@@ -201,6 +257,16 @@ public class ObjectBlenderModel {
             this.updateBoundingVolume();
             other.updateBoundingVolume();
         }
+
+        // Calculate rotation angles to align with the collision normal
+        Vector3D up = new Vector3D(0, 1, 0);
+        Vector3D right = normal.cross(up).normalize();
+        Vector3D forward = right.cross(normal).normalize();
+
+        // Update rotation angles
+        this.rotationX = (float) Math.toDegrees(Math.acos(forward.dot(new Vector3D(1, 0, 0))));
+        this.rotationY = (float) Math.toDegrees(Math.acos(forward.dot(new Vector3D(0, 1, 0))));
+        this.rotationZ = (float) Math.toDegrees(Math.acos(forward.dot(new Vector3D(0, 0, 1))));
     }
 
     public synchronized void updatePosition() {

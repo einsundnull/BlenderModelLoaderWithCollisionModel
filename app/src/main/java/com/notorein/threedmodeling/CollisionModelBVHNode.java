@@ -1,19 +1,17 @@
 package com.notorein.threedmodeling;
 
-import static androidx.constraintlayout.helper.widget.MotionEffect.TAG;
-
-import android.util.Log;
+import com.notorein.threedmodeling.utils.Vector3D;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class CollisionModelBVHNode {
     private final int TRIANGLE_THRESHOLD = 10; // Define the threshold
-    CollisionModelBoundingVolume boundingVolume;
+    private ConvexShape boundingVolume;
     private List<CollisionModelBVHNode> children;
     private final List<ObjectModelTriangle> collisionModelTriangles;
 
-    public CollisionModelBVHNode(CollisionModelBoundingVolume boundingVolume, List<ObjectModelTriangle> collisionModelTriangles) {
+    public CollisionModelBVHNode(ConvexShape boundingVolume, List<ObjectModelTriangle> collisionModelTriangles) {
         this.boundingVolume = boundingVolume;
         this.collisionModelTriangles = collisionModelTriangles;
         this.children = new ArrayList<>();
@@ -51,7 +49,6 @@ public class CollisionModelBVHNode {
         return false;
     }
 
-
     private boolean checkTriangleCollision(List<ObjectModelTriangle> triangles1, List<ObjectModelTriangle> triangles2) {
         for (ObjectModelTriangle t1 : triangles1) {
             for (ObjectModelTriangle t2 : triangles2) {
@@ -65,7 +62,7 @@ public class CollisionModelBVHNode {
 
     private CollisionModelBVHNode buildBVH(List<ObjectModelTriangle> collisionModelTriangles, float size) {
         if (collisionModelTriangles.size() <= TRIANGLE_THRESHOLD) {
-            CollisionModelAABB boundingVolume = calculateBoundingVolume(collisionModelTriangles, size);
+            ConvexShape boundingVolume = calculateBoundingVolume(collisionModelTriangles, size);
             return new CollisionModelBVHNode(boundingVolume, collisionModelTriangles);
         }
 
@@ -84,7 +81,7 @@ public class CollisionModelBVHNode {
         CollisionModelBVHNode leftChild = buildBVH(leftCollisionModelTriangles, size);
         CollisionModelBVHNode rightChild = buildBVH(rightCollisionModelTriangles, size);
 
-        CollisionModelAABB boundingVolume = calculateBoundingVolume(collisionModelTriangles, size);
+        ConvexShape boundingVolume = calculateBoundingVolume(collisionModelTriangles, size);
         CollisionModelBVHNode node = new CollisionModelBVHNode(boundingVolume, collisionModelTriangles);
         node.addChild(leftChild);
         node.addChild(rightChild);
@@ -92,30 +89,25 @@ public class CollisionModelBVHNode {
         return node;
     }
 
-    private CollisionModelAABB calculateBoundingVolume(List<ObjectModelTriangle> collisionModelTriangles, float size) {
+    private ConvexShape calculateBoundingVolume(List<ObjectModelTriangle> collisionModelTriangles, float size) {
+        List<Vector3D> vertices = new ArrayList<>();
         Vector3D min = new Vector3D(Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE);
         Vector3D max = new Vector3D(Float.MIN_VALUE, Float.MIN_VALUE, Float.MIN_VALUE);
 
         for (ObjectModelTriangle collisionModelTriangle : collisionModelTriangles) {
             for (Vector3D vertex : collisionModelTriangle.getVertices()) {
+                vertices.add(vertex.scale(size));
                 min.x = Math.min(min.x, vertex.x * size);
                 min.y = Math.min(min.y, vertex.y * size);
                 min.z = Math.min(min.z, vertex.z * size);
                 max.x = Math.max(max.x, vertex.x * size);
                 max.y = Math.max(max.y, vertex.y * size);
                 max.z = Math.max(max.z, vertex.z * size);
-
-//                min.x = Math.min(min.x, vertex.x );
-//                min.y = Math.min(min.y, vertex.y );
-//                min.z = Math.min(min.z, vertex.z);
-//                max.x = Math.max(max.x, vertex.x);
-//                max.y = Math.max(max.y, vertex.y );
-//                max.z = Math.max(max.z, vertex.z );
             }
         }
 
-//        Log.i(TAG, "calculateBoundingVolume: Min: " + min + " Max: " + max);
-        return new CollisionModelAABB(min, max);
+        // Create a ConvexShape with the calculated vertices
+        return new ConvexShape(vertices);
     }
 
     private Vector3D calculateCentroid(List<ObjectModelTriangle> collisionModelTriangles) {

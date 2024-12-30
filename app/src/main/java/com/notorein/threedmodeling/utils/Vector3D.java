@@ -1,4 +1,4 @@
-package com.notorein.threedmodeling;
+package com.notorein.threedmodeling.utils;
 
 public class Vector3D {
     public double x;
@@ -51,6 +51,9 @@ public class Vector3D {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 
+    public Vector3D negate() {
+        return new Vector3D(-this.x, -this.y, -this.z);
+    }
 
     @Override
     public String toString() {

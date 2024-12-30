@@ -9,6 +9,8 @@ import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.util.Pair;
 
+import com.notorein.threedmodeling.utils.Vector3D;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -47,24 +50,14 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     private ObjectLightSource objectLightSource;
 
     private float cameraYaw, cameraPitch;
-    private float eyeX, eyeY, eyeZ, lookX, lookY, lookZ, upX, upY, upZ;
-    private List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions;
 
-    public static String loadShader(Context context, String shaderFileName) {
-        StringBuilder shaderSource = new StringBuilder();
-        try {
-            InputStream inputStream = context.getAssets().open(shaderFileName);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                shaderSource.append(line).append("\n");
-            }
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return shaderSource.toString();
-    }
+    private float strafeX = 0;
+    private float strafeY = 0;
+    private float strafeZ = 0;
+    private static final float STRAFE_SPEED = 0.1f;
+    private List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions;
+    private final ExecutorService shaderLoaderExecutor;
+    private final ExecutorService collisionDetectionExecutor;
 
     public ShadowMapRenderer(Context context, MainActivity activityMain, List<ObjectBlenderModel> objects, int screenWidth, int screenHeight) {
         this.objects = objects;
@@ -73,6 +66,8 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
         this.width = screenWidth;
         this.height = screenHeight;
         this.objectLightSource = activityMain.getObjectLightSource();
+        this.shaderLoaderExecutor = Executors.newSingleThreadExecutor();
+        this.collisionDetectionExecutor = Executors.newFixedThreadPool(4);
     }
 
     @Override
@@ -83,12 +78,20 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
 
         initShadowMap();
 
-        String vertexShaderCode = loadShader(context, "shaders/vertex_shader.glsl");
-        String shadowFragmentShaderCode = loadShader(context, "shaders/shadow_fragment_shader.glsl");
-        String sceneFragmentShaderCode = loadShader(context, "shaders/scene_fragment_shader.glsl");
+        Future<String> vertexShaderFuture = shaderLoaderExecutor.submit(() -> loadShader(context, "shaders/vertex_shader.glsl"));
+        Future<String> shadowFragmentShaderFuture = shaderLoaderExecutor.submit(() -> loadShader(context, "shaders/shadow_fragment_shader.glsl"));
+        Future<String> sceneFragmentShaderFuture = shaderLoaderExecutor.submit(() -> loadShader(context, "shaders/scene_fragment_shader.glsl"));
 
-        shadowProgram = loadShaderProgram(vertexShaderCode, shadowFragmentShaderCode);
-        sceneProgram = loadShaderProgram(vertexShaderCode, sceneFragmentShaderCode);
+        try {
+            String vertexShaderCode = vertexShaderFuture.get();
+            String shadowFragmentShaderCode = shadowFragmentShaderFuture.get();
+            String sceneFragmentShaderCode = sceneFragmentShaderFuture.get();
+
+            shadowProgram = loadShaderProgram(vertexShaderCode, shadowFragmentShaderCode);
+            sceneProgram = loadShaderProgram(vertexShaderCode, sceneFragmentShaderCode);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         activityMain.getObjectLightSource().enableLight(gl);
         activityMain.getObjectLightSource().setMaterialProperties(gl);
@@ -116,6 +119,11 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
             cameraPosX = activityMain.getCameraPosX();
             cameraPosY = activityMain.getCameraPosY();
             cameraPosZ = activityMain.getCameraPosZ();
+
+            cameraPosX += strafeX * STRAFE_SPEED;
+            cameraPosY += strafeY * STRAFE_SPEED;
+            cameraPosZ += strafeZ * STRAFE_SPEED;
+
             scaleFactor = activityMain.getScaleFactor();
             cameraAngleX = activityMain.getCameraAngleX();
             cameraAngleY = activityMain.getCameraAngleY();
@@ -135,6 +143,12 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
 
         renderShadowMap();
         renderScene();
+    }
+
+    public void setStrafeDirection(float x, float y, float z) {
+        strafeX = x;
+        strafeY = y;
+        strafeZ = z;
     }
 
     private void updateObjects() {
@@ -190,19 +204,33 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     private List<Pair<ObjectBlenderModel, ObjectBlenderModel>> broadPhaseCollisionDetection() {
         List<Pair<ObjectBlenderModel, ObjectBlenderModel>> potentialCollisions = new ArrayList<>();
         synchronized (objects) {
+            List<Future<Void>> futures = new ArrayList<>();
             for (ObjectBlenderModel object : objects) {
-                for (ObjectBlenderModel other : objects) {
-                    if (object != other) {
-                        object.applyGravity(other);
-                        Vector3D worldBoundingVolumeCenter1 = object.boundingVolume.min.add(object.boundingVolume.max).scale(0.5).add(object.position);
-                        Vector3D worldBoundingVolumeCenter2 = other.boundingVolume.min.add(other.boundingVolume.max).scale(0.5).add(other.position);
+                futures.add(collisionDetectionExecutor.submit(() -> {
+                    for (ObjectBlenderModel other : objects) {
+                        if (object != other) {
+                            object.applyGravity(other);
+                            Vector3D worldBoundingVolumeCenter1 = object.boundingVolume.min.add(object.boundingVolume.max).scale(0.5).add(object.position);
+                            Vector3D worldBoundingVolumeCenter2 = other.boundingVolume.min.add(other.boundingVolume.max).scale(0.5).add(other.position);
 
-                        double distance = worldBoundingVolumeCenter1.subtract(worldBoundingVolumeCenter2).magnitude();
+                            double distance = worldBoundingVolumeCenter1.subtract(worldBoundingVolumeCenter2).magnitude();
 
-                        if (distance < (object.size + other.size) * 1.5) {
-                            potentialCollisions.add(new Pair<>(object, other));
+                            if (distance < (object.size + other.size) * 1.5) {
+                                synchronized (potentialCollisions) {
+                                    potentialCollisions.add(new Pair<>(object, other));
+                                }
+                            }
                         }
                     }
+                    return null;
+                }));
+            }
+
+            for (Future<Void> future : futures) {
+                try {
+                    future.get();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
             return potentialCollisions;
@@ -282,7 +310,10 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
                     GLES20.glEnableVertexAttribArray(aColorLocation);
 
                     object.drawObject(program, mvpMatrix, viewMatrix, projectionMatrix);
+                    if(object.drawBoundingVolume) {
+                        object.drawBoundingVolume(program, mvpMatrix, viewMatrix, projectionMatrix);
 
+                    }
                     GLES20.glDisableVertexAttribArray(aPositionLocation);
                     GLES20.glDisableVertexAttribArray(aNormalLocation);
                     GLES20.glDisableVertexAttribArray(aColorLocation);
@@ -292,9 +323,38 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
     }
 
     private boolean isInFrustum(Vector3D position, float radius) {
-        // Implement frustum culling logic here
-        return true; // Placeholder
+        // Extract the frustum planes from the view-projection matrix
+        float[] mvpMatrix = new float[16];
+        Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
+
+        Plane[] frustumPlanes = new Plane[6];
+        frustumPlanes[0] = extractPlane(mvpMatrix, 3, 0, 0); // Left
+        frustumPlanes[1] = extractPlane(mvpMatrix, 3, 1, 1); // Right
+        frustumPlanes[2] = extractPlane(mvpMatrix, 3, 2, 2); // Bottom
+        frustumPlanes[3] = extractPlane(mvpMatrix, 3, 3, 3); // Top
+        frustumPlanes[4] = extractPlane(mvpMatrix, 2, 3, 2); // Near
+        frustumPlanes[5] = extractPlane(mvpMatrix, 3, 2, 3); // Far
+
+        // Check if the object's bounding sphere is within the frustum
+        for (Plane plane : frustumPlanes) {
+            if (plane.getDistanceToPoint(position) < -radius) {
+                return false; // Object is outside the frustum
+            }
+        }
+        return true; // Object is inside the frustum
     }
+
+    private Plane extractPlane(float[] mvpMatrix, int row, int col1, int col2) {
+        Vector3D normal = new Vector3D(
+                mvpMatrix[col1] - mvpMatrix[row],
+                mvpMatrix[col1 + 4] - mvpMatrix[row + 4],
+                mvpMatrix[col1 + 8] - mvpMatrix[row + 8]
+        );
+        float distance = -(mvpMatrix[col2] - mvpMatrix[row + 12]);
+        return new Plane(normal, distance);
+    }
+
+
 
     private int loadShaderProgram(String vertexShaderCode, String fragmentShaderCode) {
         int vertexShader = compileShader(GLES20.GL_VERTEX_SHADER, vertexShaderCode);
@@ -334,5 +394,21 @@ public class ShadowMapRenderer implements GLSurfaceView.Renderer {
                 object.reset();
             }
         }
+    }
+
+    public static String loadShader(Context context, String shaderFileName) {
+        StringBuilder shaderSource = new StringBuilder();
+        try {
+            InputStream inputStream = context.getAssets().open(shaderFileName);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                shaderSource.append(line).append("\n");
+            }
+            reader.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return shaderSource.toString();
     }
 }
