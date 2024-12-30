@@ -359,13 +359,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         objects = new ArrayList<>();
 
         // Add initial objects
-        objects.add(new ObjectBlenderModel(context, 1, new Vector3D(-1200, 0, 1800), new Vector3D(0, 0, 0), 1000, Color.BLUE, 100, false, true, true, true, true, "Plane", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-600, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 100, false, true, true, true, true, "CHECK", "cyl"));
+        objects.add(new ObjectBlenderModel(context, 1, new Vector3D(-1200, 0, 1800), new Vector3D(0, 0, 0), 1000, Color.BLUE, 100, true, true, true, true, true, "Plane", "cyl"));
+//        objects.add(new ObjectBlenderModel(context, 3, new Vector3D(-600, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 500, false, true, true, true, true, "CHECK", "cupII"));
         objects.add(new ObjectBlenderModel(context, 2, new Vector3D(0, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 300, false, true, true, true, true, "CUP", "cyl"));
         objects.add(new ObjectBlenderModel(context, 3, new Vector3D(600, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.MAGENTA, 100, false, true, true, true, true, "CHECK", "cyl"));
         objects.add(new ObjectBlenderModel(context, 2, new Vector3D(0, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 100, false, true, true, true, true, "CUP", "cyl"));
         objects.add(new ObjectBlenderModel(context, 2, new Vector3D(0, 0, 1800), new Vector3D(0, 0, 0), ObjectInitData.Sun.MASS, Color.RED, 100, false, true, true, true, true, "CUP", "cyl"));
-        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(-110, -8000, 8000), new Vector3D(0, 0, 0), 8000000, Color.RED, 700, true, false, true, true, true, "CUP", "palneiii"));
+//        objects.add(new ObjectBlenderModel(context, 2, new Vector3D(-110, -8000, 8000), new Vector3D(0, 0, 0), 8000000, Color.RED, 700, true, false, true, true, true, "CUP", "palneiii"));
         // Define the central point and radius
 //        Vector3D center = new Vector3D(0, 0, 1800);
 //        double radius = 600; // Radius of the sphere

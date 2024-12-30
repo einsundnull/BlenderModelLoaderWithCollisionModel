@@ -257,16 +257,6 @@ public class ObjectBlenderModel {
             this.updateBoundingVolume();
             other.updateBoundingVolume();
         }
-
-        // Calculate rotation angles to align with the collision normal
-        Vector3D up = new Vector3D(0, 1, 0);
-        Vector3D right = normal.cross(up).normalize();
-        Vector3D forward = right.cross(normal).normalize();
-
-        // Update rotation angles
-        this.rotationX = (float) Math.toDegrees(Math.acos(forward.dot(new Vector3D(1, 0, 0))));
-        this.rotationY = (float) Math.toDegrees(Math.acos(forward.dot(new Vector3D(0, 1, 0))));
-        this.rotationZ = (float) Math.toDegrees(Math.acos(forward.dot(new Vector3D(0, 0, 1))));
     }
 
     public synchronized void updatePosition() {
